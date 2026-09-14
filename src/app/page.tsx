@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Navbar from "@/components/Navbar";
 import DisclaimerBanner from "@/components/DisclaimerBanner";
+import LandingHero from "@/components/LandingHero";
 import DocumentInput from "@/components/DocumentInput";
 import RiskHeatmap from "@/components/RiskHeatmap";
 import GroundedChat from "@/components/GroundedChat";
@@ -10,17 +11,19 @@ import RedlineCompare from "@/components/RedlineCompare";
 import NegotiationStudio from "@/components/NegotiationStudio";
 import LawyerDossier from "@/components/LawyerDossier";
 import { CONTRACT_PRESETS } from "@/lib/presets";
+import { sanitizeContractText } from "@/lib/pii";
 import {
   ContractAnalysisResult,
   AnalyzedClause,
   SanitizationResult,
 } from "@/lib/types";
 import {
-  ShieldAlert,
-  FileSearch,
+  RotateCcw,
   Sparkles,
-  Award,
+  Layers,
   ArrowRight,
+  ShieldCheck,
+  CheckCircle,
 } from "lucide-react";
 
 export default function Home() {
@@ -52,6 +55,12 @@ export default function Home() {
       if (json.success && json.data) {
         setAnalysis(json.data);
         setActiveTab("audit");
+        // Scroll smoothly to the results workbench
+        setTimeout(() => {
+          document
+            .getElementById("analysis-workbench")
+            ?.scrollIntoView({ behavior: "smooth" });
+        }, 100);
       } else {
         alert(json.error || "Analysis failed. Please check your text.");
       }
@@ -63,9 +72,32 @@ export default function Home() {
     }
   };
 
+  const handleSelectPresetAndAudit = (presetId: string) => {
+    const preset = CONTRACT_PRESETS.find((p) => p.id === presetId);
+    if (preset) {
+      setSelectedPresetId(preset.id);
+      setRawText(preset.rawText);
+      const res = sanitizeContractText(preset.rawText);
+      handleAnalyze(res.sanitizedText, res);
+    }
+  };
+
+  const handleScrollToInput = () => {
+    document
+      .getElementById("document-input-section")
+      ?.scrollIntoView({ behavior: "smooth" });
+  };
+
   const handleSelectClauseForNegotiation = (clause: AnalyzedClause) => {
     setSelectedClauseForNegotiation(clause);
     setActiveTab("negotiate");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleResetToLanding = () => {
+    setAnalysis(null);
+    setActiveTab("audit");
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   return (
@@ -78,88 +110,110 @@ export default function Home() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         hasAnalysis={analysis !== null}
+        documentTitle={analysis?.documentTitle}
+        riskScore={analysis?.overallRiskScore}
+        onResetToLanding={handleResetToLanding}
       />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 space-y-6">
-        {/* Hero Section */}
-        <section aria-label="Platform Overview" className="bg-gradient-to-r from-blue-950/30 via-indigo-950/20 to-purple-950/30 border border-gray-800/80 rounded-2xl p-6 sm:p-8">
-          <div className="max-w-3xl">
-            <div className="inline-flex items-center space-x-2 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold px-3 py-1 rounded-full mb-3">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>PromptWars Exclusive Edition • Legal Access Track</span>
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-              Level the Playing Field Against Incomprehensible Contracts
-            </h2>
-            <p className="text-xs sm:text-sm text-gray-300 mt-2.5 leading-relaxed">
-              Legal documents are designed to be asymmetrical. <strong>LexiGuard AI</strong> empowers freelancers, tenants, and small business owners to deconstruct legalese, uncover hidden risks and omitted clauses, simulate real-world outcomes, and generate balanced counter-proposals in seconds.
-            </p>
-          </div>
-        </section>
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 space-y-8">
+        {/* Landing Page Hero & Onboarding (shown if no analysis or user wants to review) */}
+        {!analysis && (
+          <>
+            <LandingHero
+              onSelectPresetAndAudit={handleSelectPresetAndAudit}
+              onScrollToInput={handleScrollToInput}
+            />
 
-        {/* Ingestion & PII Redaction Input Area */}
-        <DocumentInput
-          rawText={rawText}
-          setRawText={setRawText}
-          onAnalyze={handleAnalyze}
-          isLoading={isLoading}
-          selectedPresetId={selectedPresetId}
-          setSelectedPresetId={setSelectedPresetId}
-        />
+            {/* Ingestion & PII Redaction Input Area */}
+            <DocumentInput
+              rawText={rawText}
+              setRawText={setRawText}
+              onAnalyze={handleAnalyze}
+              isLoading={isLoading}
+              selectedPresetId={selectedPresetId}
+              setSelectedPresetId={setSelectedPresetId}
+            />
+          </>
+        )}
 
-        {/* Tab Content Display Area */}
-        <section className="space-y-6">
-          {activeTab === "audit" && (
-            <>
-              {analysis ? (
-                <RiskHeatmap
-                  analysis={analysis}
-                  onSelectForNegotiation={handleSelectClauseForNegotiation}
-                />
-              ) : (
-                <div className="bg-gray-900/60 border border-gray-800 rounded-xl p-12 text-center space-y-3">
-                  <FileSearch className="w-12 h-12 text-gray-600 mx-auto" />
-                  <h3 className="text-base font-bold text-gray-300">
-                    No Document Audited Yet
-                  </h3>
-                  <p className="text-xs text-gray-500 max-w-md mx-auto">
-                    Click <strong>&ldquo;Audit &amp; Deconstruct Contract&rdquo;</strong> above to initiate Gemini 2.5 Flash clause decomposition, 3D risk rating, and omission scanning.
+        {/* Active Analysis Workbench View */}
+        {analysis && (
+          <div id="analysis-workbench" className="space-y-6">
+            {/* Workbench Header Status Bar */}
+            <div className="bg-gray-900/90 border border-gray-800 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg">
+              <div className="flex items-center space-x-3">
+                <div className="p-2.5 rounded-xl bg-blue-950/80 border border-blue-800/60 text-blue-400">
+                  <Layers className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <h2 className="text-base font-bold text-white">
+                      {analysis.documentTitle}
+                    </h2>
+                    <span className="text-xs bg-gray-800 text-gray-300 px-2 py-0.5 rounded font-mono">
+                      {analysis.contractType}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    Deconstructed by <strong>Gemini 2.5 Flash</strong> • {analysis.clauses.length} clauses analyzed
                   </p>
                 </div>
-              )}
-            </>
-          )}
+              </div>
 
-          {activeTab === "qa" && (
-            <GroundedChat contractText={rawText} />
-          )}
+              <div className="flex items-center space-x-3 self-end sm:self-center">
+                <button
+                  onClick={handleResetToLanding}
+                  className="px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg flex items-center space-x-1.5 transition-colors border border-gray-700"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Audit Another Contract</span>
+                </button>
+              </div>
+            </div>
 
-          {activeTab === "compare" && (
-            <RedlineCompare />
-          )}
+            {/* Tab Views */}
+            {activeTab === "audit" && (
+              <RiskHeatmap
+                analysis={analysis}
+                onSelectForNegotiation={handleSelectClauseForNegotiation}
+              />
+            )}
 
-          {activeTab === "negotiate" && (
-            <NegotiationStudio
-              availableClauses={analysis?.clauses || []}
-              selectedClauseForEdit={selectedClauseForNegotiation}
-            />
-          )}
+            {activeTab === "qa" && (
+              <GroundedChat contractText={rawText} />
+            )}
 
-          {activeTab === "dossier" && analysis && (
-            <LawyerDossier analysis={analysis} />
-          )}
-        </section>
+            {activeTab === "compare" && (
+              <RedlineCompare />
+            )}
+
+            {activeTab === "negotiate" && (
+              <NegotiationStudio
+                availableClauses={analysis.clauses}
+                selectedClauseForEdit={selectedClauseForNegotiation}
+              />
+            )}
+
+            {activeTab === "dossier" && (
+              <LawyerDossier analysis={analysis} />
+            )}
+          </div>
+        )}
       </main>
 
       {/* Footer */}
-      <footer className="mt-auto border-t border-gray-800/80 bg-gray-950/80 py-6 text-xs text-gray-500 text-center">
-        <div className="max-w-7xl mx-auto px-4 space-y-2">
-          <p>
-            LexiGuard AI • Built with <strong>Google Gemini 2.5 Flash</strong> for the PromptWars: Virtual (Exclusive Edition).
-          </p>
-          <p className="text-[11px] text-gray-600">
-            Strict repository size guard &lt; 10 MB • Single `main` branch • Client-Side PII privacy shield • Educational legal navigation.
-          </p>
+      <footer className="mt-auto border-t border-gray-800/80 bg-gray-950/90 py-8 text-xs text-gray-500">
+        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="font-bold text-gray-400">LexiGuard AI</div>
+            <p className="text-[11px] text-gray-600">
+              Built with Google Gemini 2.5 Flash for PromptWars: Virtual (Exclusive Edition).
+            </p>
+          </div>
+          <div className="text-[11px] text-gray-500 sm:text-right space-y-0.5">
+            <div>Strict repository size guard &lt; 10 MB • Single `main` branch</div>
+            <div>Client-Side PII privacy shield • Educational legal navigation</div>
+          </div>
         </div>
       </footer>
     </div>
