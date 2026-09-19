@@ -1,22 +1,49 @@
 import { NextRequest, NextResponse } from "next/server";
 import { analyzeContractWithGemini } from "@/lib/gemini";
+import { apiRateLimiter } from "@/lib/rate-limiter";
+import { getClientIp, sanitizePromptInput } from "@/lib/security";
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { text } = body;
+    // 1. Rate Limiting Defense
+    const ip = getClientIp(req.headers);
+    const rateLimit = apiRateLimiter.check(ip);
 
-    if (!text || typeof text !== "string" || text.trim().length < 20) {
+    const headers = {
+      "X-RateLimit-Limit": rateLimit.limit.toString(),
+      "X-RateLimit-Remaining": rateLimit.remaining.toString(),
+      "X-RateLimit-Reset": rateLimit.resetTimeMs.toString(),
+    };
+
+    if (!rateLimit.allowed) {
       return NextResponse.json(
         {
-          error: "Please provide valid legal contract text with at least 20 characters.",
+          error: "Rate limit exceeded. Please wait a few seconds before submitting more requests.",
         },
-        { status: 400 }
+        {
+          status: 429,
+          headers: {
+            ...headers,
+            "Retry-After": (rateLimit.retryAfterSeconds || 60).toString(),
+          },
+        }
       );
     }
 
-    const analysis = await analyzeContractWithGemini(text);
-    return NextResponse.json({ success: true, data: analysis });
+    const body = await req.json();
+    const { text } = body;
+
+    // 2. Input Length & Security Validation
+    const validation = sanitizePromptInput(text, 65000);
+    if (!validation.isValid) {
+      return NextResponse.json(
+        { error: validation.errorMessage },
+        { status: 400, headers }
+      );
+    }
+
+    const analysis = await analyzeContractWithGemini(validation.sanitizedText);
+    return NextResponse.json({ success: true, data: analysis }, { headers });
   } catch (error) {
     console.error("Error in /api/analyze:", error);
     return NextResponse.json(

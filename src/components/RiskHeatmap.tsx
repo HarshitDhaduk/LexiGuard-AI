@@ -17,6 +17,7 @@ import {
   FileWarning,
   Sparkles,
 } from "lucide-react";
+import TelemetryPill from "./TelemetryPill";
 
 interface RiskHeatmapProps {
   analysis: ContractAnalysisResult;
@@ -125,6 +126,13 @@ export default function RiskHeatmap({
                 >
                   {analysis.overallRiskRating} Risk Level
                 </span>
+                {analysis.telemetry && (
+                  <TelemetryPill
+                    cached={analysis.telemetry.cached}
+                    executionTimeMs={analysis.telemetry.executionTimeMs}
+                    tokensSaved={analysis.telemetry.tokensSaved}
+                  />
+                )}
               </div>
               <p className="text-xs text-gray-400 mt-1">
                 Classified as <strong>{analysis.contractType}</strong> • Identified parties:{" "}

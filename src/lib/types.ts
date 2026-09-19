@@ -61,6 +61,11 @@ export interface ContractAnalysisResult {
   deadlines: DeadlineObligation[];
   lawyerQuestions: string[]; // 5 sharp questions to prepare for licensed counsel
   analyzedAt: string;
+  telemetry?: {
+    cached: boolean;
+    executionTimeMs: number;
+    tokensSaved?: number;
+  };
 }
 
 export interface ClauseDiffItem {

@@ -30,6 +30,39 @@ describe("Client-Side PII Shield (sanitizeContractText)", () => {
     expect(result.sanitizedText).toMatch(/\[PHONE_\d+\]/);
   });
 
+  it("redacts physical addresses with street names and zip codes", () => {
+    const input = "Located at 500 Enterprise Way, Suite 800, Austin, TX 78701 in Delaware.";
+    const result = sanitizeContractText(input);
+
+    expect(result.sanitizedText).not.toContain("500 Enterprise Way");
+    expect(result.sanitizedText).toMatch(/\[ADDRESS_\d+\]/);
+  });
+
+  it("redacts valid credit card numbers verified via Luhn algorithm", () => {
+    // Valid sample test card matching Luhn check (4532-0150-1234-5671)
+    const input = "Autopay billing card: 4532-0150-1234-5671 on file.";
+    const result = sanitizeContractText(input);
+
+    expect(result.sanitizedText).not.toContain("4532-0150-1234-5671");
+    expect(result.sanitizedText).toMatch(/\[CREDIT_CARD_\d+\]/);
+  });
+
+  it("leaves non-card numeric sequences unchanged if Luhn check fails", () => {
+    const input = "Reference order number 1234-5678-9012-3456 is not a valid credit card.";
+    const result = sanitizeContractText(input);
+
+    // Should not mask as credit card because Luhn check fails
+    expect(result.sanitizedText).not.toMatch(/\[CREDIT_CARD_\d+\]/);
+  });
+
+  it("redacts European and international IBAN account identifiers", () => {
+    const input = "Wire payments to IBAN: DE89370400440532013000 at Deutsche Bank.";
+    const result = sanitizeContractText(input);
+
+    expect(result.sanitizedText).not.toContain("DE89370400440532013000");
+    expect(result.sanitizedText).toMatch(/\[IBAN_\d+\]/);
+  });
+
   it("rehydrates sanitized text back to original values correctly", () => {
     const original = "Contact john@example.com for payment of $5,000.00.";
     const { sanitizedText, redactions } = sanitizeContractText(original);

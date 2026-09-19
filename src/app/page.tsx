@@ -3,6 +3,8 @@
 import React, { useState } from "react";
 import Navbar from "@/components/Navbar";
 import DisclaimerBanner from "@/components/DisclaimerBanner";
+import AccessibilityBar from "@/components/AccessibilityBar";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import LandingHero from "@/components/LandingHero";
 import DocumentInput from "@/components/DocumentInput";
 import RiskHeatmap from "@/components/RiskHeatmap";
@@ -10,6 +12,7 @@ import GroundedChat from "@/components/GroundedChat";
 import RedlineCompare from "@/components/RedlineCompare";
 import NegotiationStudio from "@/components/NegotiationStudio";
 import LawyerDossier from "@/components/LawyerDossier";
+import SplitContractReader from "@/components/SplitContractReader";
 import { CONTRACT_PRESETS } from "@/lib/presets";
 import { sanitizeContractText } from "@/lib/pii";
 import {
@@ -24,6 +27,7 @@ import {
   ArrowRight,
   ShieldCheck,
   CheckCircle,
+  Columns,
 } from "lucide-react";
 
 export default function Home() {
@@ -38,6 +42,12 @@ export default function Home() {
     useState<AnalyzedClause | null>(null);
   const [sanitizationInfo, setSanitizationInfo] =
     useState<SanitizationResult | null>(null);
+
+  // Accessibility State
+  const [fontSizeLevel, setFontSizeLevel] = useState<"normal" | "medium" | "large">("normal");
+  const [highContrast, setHighContrast] = useState(false);
+  const [showSplitView, setShowSplitView] = useState(true);
+  const [highlightedClauseId, setHighlightedClauseId] = useState<string | null>(null);
 
   const handleAnalyze = async (
     payloadText: string,
@@ -100,10 +110,38 @@ export default function Home() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  const fontSizeClass =
+    fontSizeLevel === "large"
+      ? "text-[115%]"
+      : fontSizeLevel === "medium"
+      ? "text-[107%]"
+      : "text-[100%]";
+
   return (
-    <div className="min-h-screen flex flex-col bg-[#0b0f19] text-gray-100 selection:bg-blue-600 selection:text-white">
+    <div
+      className={`min-h-screen flex flex-col selection:bg-blue-600 selection:text-white ${fontSizeClass} ${
+        highContrast ? "bg-black text-white" : "bg-[#0b0f19] text-gray-100"
+      }`}
+    >
+      {/* Skip to Content for Accessibility */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:p-2 focus:bg-blue-600 focus:text-white focus:rounded"
+      >
+        Skip to main content
+      </a>
+
       {/* Persistent Legal Boundary Banner */}
       <DisclaimerBanner />
+
+      {/* Accessibility & Display Toolbar */}
+      <AccessibilityBar
+        fontSizeLevel={fontSizeLevel}
+        setFontSizeLevel={setFontSizeLevel}
+        highContrast={highContrast}
+        setHighContrast={setHighContrast}
+        onTabSelect={(tabId) => setActiveTab(tabId)}
+      />
 
       {/* Navigation Header */}
       <Navbar
@@ -115,90 +153,129 @@ export default function Home() {
         onResetToLanding={handleResetToLanding}
       />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 space-y-8">
-        {/* Landing Page Hero & Onboarding (shown if no analysis or user wants to review) */}
-        {!analysis && (
-          <>
-            <LandingHero
-              onSelectPresetAndAudit={handleSelectPresetAndAudit}
-              onScrollToInput={handleScrollToInput}
-            />
+      <main id="main-content" className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 space-y-8">
+        <ErrorBoundary fallbackTitle="LexiGuard Platform Error">
+          {/* Landing Page Hero & Onboarding (shown if no analysis) */}
+          {!analysis && (
+            <>
+              <LandingHero
+                onSelectPresetAndAudit={handleSelectPresetAndAudit}
+                onScrollToInput={handleScrollToInput}
+              />
 
-            {/* Ingestion & PII Redaction Input Area */}
-            <DocumentInput
-              rawText={rawText}
-              setRawText={setRawText}
-              onAnalyze={handleAnalyze}
-              isLoading={isLoading}
-              selectedPresetId={selectedPresetId}
-              setSelectedPresetId={setSelectedPresetId}
-            />
-          </>
-        )}
+              {/* Ingestion & PII Redaction Input Area */}
+              <DocumentInput
+                rawText={rawText}
+                setRawText={setRawText}
+                onAnalyze={handleAnalyze}
+                isLoading={isLoading}
+                selectedPresetId={selectedPresetId}
+                setSelectedPresetId={setSelectedPresetId}
+              />
+            </>
+          )}
 
-        {/* Active Analysis Workbench View */}
-        {analysis && (
-          <div id="analysis-workbench" className="space-y-6">
-            {/* Workbench Header Status Bar */}
-            <div className="bg-gray-900/90 border border-gray-800 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg">
-              <div className="flex items-center space-x-3">
-                <div className="p-2.5 rounded-xl bg-blue-950/80 border border-blue-800/60 text-blue-400">
-                  <Layers className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="flex items-center space-x-2">
-                    <h2 className="text-base font-bold text-white">
-                      {analysis.documentTitle}
-                    </h2>
-                    <span className="text-xs bg-gray-800 text-gray-300 px-2 py-0.5 rounded font-mono">
-                      {analysis.contractType}
-                    </span>
+          {/* Active Analysis Workbench View */}
+          {analysis && (
+            <div id="analysis-workbench" className="space-y-6">
+              {/* Workbench Header Status Bar */}
+              <div className="bg-gray-900/90 border border-gray-800 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2.5 rounded-xl bg-blue-950/80 border border-blue-800/60 text-blue-400">
+                    <Layers className="w-5 h-5" />
                   </div>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    Deconstructed by <strong>Gemini 2.5 Flash</strong> • {analysis.clauses.length} clauses analyzed
-                  </p>
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <h2 className="text-base font-bold text-white">
+                        {analysis.documentTitle}
+                      </h2>
+                      <span className="text-xs bg-gray-800 text-gray-300 px-2 py-0.5 rounded font-mono">
+                        {analysis.contractType}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      Deconstructed by <strong>Gemini 2.5 Flash</strong> • {analysis.clauses.length} clauses analyzed
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2.5 self-end sm:self-center">
+                  {/* Split View Toggle */}
+                  {activeTab === "audit" && (
+                    <button
+                      type="button"
+                      onClick={() => setShowSplitView(!showSplitView)}
+                      className={`px-3 py-1.5 text-xs font-semibold rounded-lg flex items-center space-x-1.5 transition-colors border ${
+                        showSplitView
+                          ? "bg-indigo-950/70 border-indigo-700 text-indigo-300"
+                          : "bg-gray-800 hover:bg-gray-700 border-gray-700 text-gray-300"
+                      }`}
+                    >
+                      <Columns className="w-3.5 h-3.5" />
+                      <span>{showSplitView ? "Hide Contract Reader" : "Split Contract Reader"}</span>
+                    </button>
+                  )}
+
+                  <button
+                    onClick={handleResetToLanding}
+                    className="px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg flex items-center space-x-1.5 transition-colors border border-gray-700"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Audit Another Contract</span>
+                  </button>
                 </div>
               </div>
 
-              <div className="flex items-center space-x-3 self-end sm:self-center">
-                <button
-                  onClick={handleResetToLanding}
-                  className="px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg flex items-center space-x-1.5 transition-colors border border-gray-700"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Audit Another Contract</span>
-                </button>
-              </div>
+              {/* Tab Views */}
+              {activeTab === "audit" && (
+                <>
+                  {showSplitView ? (
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                      <div className="lg:col-span-7 space-y-6">
+                        <RiskHeatmap
+                          analysis={analysis}
+                          onSelectForNegotiation={handleSelectClauseForNegotiation}
+                        />
+                      </div>
+                      <div className="lg:col-span-5 sticky top-28">
+                        <SplitContractReader
+                          contractText={rawText}
+                          clauses={analysis.clauses}
+                          activeClauseId={highlightedClauseId}
+                          onSelectClause={(clause) => setHighlightedClauseId(clause.id)}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <RiskHeatmap
+                      analysis={analysis}
+                      onSelectForNegotiation={handleSelectClauseForNegotiation}
+                    />
+                  )}
+                </>
+              )}
+
+              {activeTab === "qa" && (
+                <GroundedChat contractText={rawText} />
+              )}
+
+              {activeTab === "compare" && (
+                <RedlineCompare />
+              )}
+
+              {activeTab === "negotiate" && (
+                <NegotiationStudio
+                  availableClauses={analysis.clauses}
+                  selectedClauseForEdit={selectedClauseForNegotiation}
+                />
+              )}
+
+              {activeTab === "dossier" && (
+                <LawyerDossier analysis={analysis} />
+              )}
             </div>
-
-            {/* Tab Views */}
-            {activeTab === "audit" && (
-              <RiskHeatmap
-                analysis={analysis}
-                onSelectForNegotiation={handleSelectClauseForNegotiation}
-              />
-            )}
-
-            {activeTab === "qa" && (
-              <GroundedChat contractText={rawText} />
-            )}
-
-            {activeTab === "compare" && (
-              <RedlineCompare />
-            )}
-
-            {activeTab === "negotiate" && (
-              <NegotiationStudio
-                availableClauses={analysis.clauses}
-                selectedClauseForEdit={selectedClauseForNegotiation}
-              />
-            )}
-
-            {activeTab === "dossier" && (
-              <LawyerDossier analysis={analysis} />
-            )}
-          </div>
-        )}
+          )}
+        </ErrorBoundary>
       </main>
 
       {/* Footer */}

@@ -1,10 +1,32 @@
 /**
  * Client-Side PII Shield & Privacy Redaction Utility
  * Detects sensitive personal and financial identifiers locally before text is submitted to any LLM.
+ * Includes Credit Card (Luhn-checked), IBAN, SSN/EIN, phone, email, and address masking.
  * Allows re-hydration of original values on the client side when viewing results.
  */
 
 import { RedactionRecord, RedactionType, SanitizationResult } from "./types";
+
+/**
+ * Validates credit card number with Luhn Algorithm
+ */
+function isValidLuhn(val: string): boolean {
+  const digits = val.replace(/\D/g, "");
+  if (digits.length < 13 || digits.length > 19) return false;
+
+  let sum = 0;
+  let shouldDouble = false;
+  for (let i = digits.length - 1; i >= 0; i--) {
+    let digit = parseInt(digits.charAt(i), 10);
+    if (shouldDouble) {
+      digit *= 2;
+      if (digit > 9) digit -= 9;
+    }
+    sum += digit;
+    shouldDouble = !shouldDouble;
+  }
+  return sum % 10 === 0;
+}
 
 /**
  * Common regex patterns for PII detection in legal documents
@@ -13,6 +35,7 @@ const PATTERNS: Array<{
   type: RedactionType;
   prefix: string;
   regex: RegExp;
+  validate?: (match: string) => boolean;
 }> = [
   {
     type: "email",
@@ -23,6 +46,17 @@ const PATTERNS: Array<{
     type: "id",
     prefix: "GOVT_ID",
     regex: /\b(?:\d{3}-\d{2}-\d{4}|\d{2}-\d{7})\b/g, // SSN or EIN format
+  },
+  {
+    type: "id",
+    prefix: "CREDIT_CARD",
+    regex: /\b(?:\d{4}[-\s]?){3}\d{4}\b|\b3[47]\d{2}[-\s]?\d{6}[-\s]?\d{5}\b/g,
+    validate: isValidLuhn,
+  },
+  {
+    type: "id",
+    prefix: "IBAN",
+    regex: /\b[A-Z]{2}\d{2}[A-Z0-9]{4}\d{7}([A-Z0-9]?){0,16}\b/g,
   },
   {
     type: "phone",
@@ -87,11 +121,15 @@ export function sanitizeContractText(rawText: string): SanitizationResult {
     });
   }
 
-  // 2. Detect and mask emails, phones, amounts, IDs, and addresses
-  for (const { type, prefix, regex } of PATTERNS) {
+  // 2. Detect and mask emails, credit cards, IBANs, phones, amounts, IDs, and addresses
+  for (const { type, prefix, regex, validate } of PATTERNS) {
     sanitized = sanitized.replace(regex, (match) => {
       // Check if already redacted
       if (match.startsWith("[") && match.endsWith("]")) {
+        return match;
+      }
+      // Optional extra validation (e.g. Luhn for credit cards)
+      if (validate && !validate(match)) {
         return match;
       }
       const existing = redactions.find((r) => r.original === match);
