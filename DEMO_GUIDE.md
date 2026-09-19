@@ -82,7 +82,7 @@ When submitting on the challenge portal, use these verified entries:
 
 ### Field 1: Public GitHub Repository Link
 ```
-https://github.com/<your-username>/Google-PromptWars-Exclusive-Edition
+https://github.com/HarshitDhaduk/LexiGuard-AI
 ```
 
 ### Field 2: Deployed Link
@@ -121,7 +121,7 @@ All endpoints enforce strict ethical guardrails and non-advisory legal disclosur
 
 1. Push your repository to GitHub:
    ```bash
-   git remote add origin https://github.com/<your-username>/Google-PromptWars-Exclusive-Edition.git
+   git remote add origin https://github.com/HarshitDhaduk/LexiGuard-AI.git
    git push -u origin main
    ```
 2. Go to [https://vercel.com/new](https://vercel.com/new) and import the repository.

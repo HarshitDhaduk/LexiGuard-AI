@@ -119,8 +119,8 @@ Legal contracts (freelance Master Services Agreements, residential leases, SaaS 
 ### Installation
 ```bash
 # 1. Clone repository
-git clone https://github.com/<your-username>/Google-PromptWars-Exclusive-Edition.git
-cd Google-PromptWars-Exclusive-Edition
+git clone https://github.com/HarshitDhaduk/LexiGuard-AI.git
+cd LexiGuard-AI
 
 # 2. Install dependencies
 npm install
