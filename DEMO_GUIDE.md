@@ -87,9 +87,8 @@ https://github.com/HarshitDhaduk/LexiGuard-AI
 
 ### Field 2: Deployed Link
 ```
-https://lexiguard-ai.vercel.app
+https://lexi-guard-ai-phi.vercel.app/
 ```
-*(or your active deployed URL)*
 
 ### Field 3: Describe the changes/updates made in the deployed version
 *(954 / 1024 characters)*
