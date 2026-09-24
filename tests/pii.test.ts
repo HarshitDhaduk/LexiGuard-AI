@@ -81,4 +81,28 @@ describe("Client-Side PII Shield (sanitizeContractText)", () => {
     const nullResult = sanitizeContractText(null);
     expect(nullResult.sanitizedText).toBe("");
   });
+
+  it("handles multiple entities in a single contract paragraph", () => {
+    const input =
+      "Party A at john.doe@corp.io agrees to pay $12,500.00 to jane.smith@freelance.org by calling (212) 555-0143.";
+    const result = sanitizeContractText(input);
+
+    expect(result.sanitizedText).not.toContain("john.doe@corp.io");
+    expect(result.sanitizedText).not.toContain("jane.smith@freelance.org");
+    expect(result.sanitizedText).not.toContain("$12,500.00");
+    expect(result.sanitizedText).not.toContain("(212) 555-0143");
+    expect(result.redactions.length).toBe(4);
+
+    const rehydrated = rehydrateContractText(result.sanitizedText, result.redactions);
+    expect(rehydrated).toBe(input);
+  });
+
+  it("preserves standard legal terminology and clause headings intact", () => {
+    const legalText =
+      "SECTION 14: GOVERNING LAW AND JURISDICTION. This Agreement shall be governed by Delaware law.";
+    const result = sanitizeContractText(legalText);
+
+    expect(result.sanitizedText).toContain("SECTION 14: GOVERNING LAW AND JURISDICTION");
+    expect(result.sanitizedText).toContain("Delaware");
+  });
 });

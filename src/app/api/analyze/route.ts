@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { analyzeContractWithGemini } from "@/lib/gemini";
 import { apiRateLimiter } from "@/lib/rate-limiter";
 import { getClientIp, sanitizePromptInput, getCorsHeaders } from "@/lib/security";
+import { AnalyzeRequestSchema, formatZodError } from "@/lib/schemas";
 
 export async function OPTIONS(req: NextRequest) {
   const origin = req.headers.get("origin");
@@ -43,7 +44,14 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { text } = body;
+    const parseResult = AnalyzeRequestSchema.safeParse(body);
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { error: formatZodError(parseResult.error) },
+        { status: 400, headers }
+      );
+    }
+    const { text } = parseResult.data;
 
     // 2. Input Length & Security Validation
     const validation = sanitizePromptInput(text, 65000);

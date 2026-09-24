@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateCounterClauseWithGemini } from "@/lib/gemini";
 import { apiRateLimiter } from "@/lib/rate-limiter";
 import { getClientIp, sanitizePromptInput, getCorsHeaders } from "@/lib/security";
+import { NegotiateRequestSchema, formatZodError } from "@/lib/schemas";
 
 export async function OPTIONS(req: NextRequest) {
   const origin = req.headers.get("origin");
@@ -39,14 +40,14 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { clauseTitle, originalSnippet, stance = "Balanced" } = body;
-
-    if (!clauseTitle || !originalSnippet) {
+    const parseResult = NegotiateRequestSchema.safeParse(body);
+    if (!parseResult.success) {
       return NextResponse.json(
-        { error: "Please provide both clauseTitle and originalSnippet." },
+        { error: formatZodError(parseResult.error) },
         { status: 400, headers }
       );
     }
+    const { clauseTitle, originalSnippet, stance } = parseResult.data;
 
     const valSnippet = sanitizePromptInput(originalSnippet, 10000);
     const proposal = await generateCounterClauseWithGemini(

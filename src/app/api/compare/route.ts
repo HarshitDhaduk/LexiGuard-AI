@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { compareContractsWithGemini } from "@/lib/gemini";
 import { apiRateLimiter } from "@/lib/rate-limiter";
 import { getClientIp, sanitizePromptInput, getCorsHeaders } from "@/lib/security";
+import { CompareRequestSchema, formatZodError } from "@/lib/schemas";
 
 export async function OPTIONS(req: NextRequest) {
   const origin = req.headers.get("origin");
@@ -39,7 +40,14 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { docA, docB } = body;
+    const parseResult = CompareRequestSchema.safeParse(body);
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { error: formatZodError(parseResult.error) },
+        { status: 400, headers }
+      );
+    }
+    const { docA, docB } = parseResult.data;
 
     const valA = sanitizePromptInput(docA, 65000);
     const valB = sanitizePromptInput(docB, 65000);

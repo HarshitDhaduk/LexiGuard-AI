@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { chatGroundedWithGemini, streamChatGroundedWithGemini } from "@/lib/gemini";
 import { apiRateLimiter } from "@/lib/rate-limiter";
 import { getClientIp, sanitizePromptInput, getCorsHeaders } from "@/lib/security";
+import { ChatRequestSchema, formatZodError } from "@/lib/schemas";
 
 export async function OPTIONS(req: NextRequest) {
   const origin = req.headers.get("origin");
@@ -39,14 +40,14 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { contractText, query, history = [], stream = false } = body;
-
-    if (!contractText || typeof contractText !== "string") {
+    const parseResult = ChatRequestSchema.safeParse(body);
+    if (!parseResult.success) {
       return NextResponse.json(
-        { error: "No contract context found to answer questions against." },
+        { error: formatZodError(parseResult.error) },
         { status: 400, headers }
       );
     }
+    const { contractText, query, history, stream } = parseResult.data;
 
     const valQuery = sanitizePromptInput(query, 5000);
     if (!valQuery.isValid && query.trim().length === 0) {

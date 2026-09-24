@@ -26,4 +26,24 @@ describe("Contract Presets Validation", () => {
     expect(freelance?.comparableText).toBeDefined();
     expect(freelance?.comparableText?.length).toBeGreaterThan(200);
   });
+
+  it("guarantees unique IDs across all presets", () => {
+    const ids = CONTRACT_PRESETS.map((p) => p.id);
+    const uniqueIds = new Set(ids);
+    expect(uniqueIds.size).toBe(ids.length);
+  });
+
+  it("verifies presets contain standard contractual risk clauses", () => {
+    const textAll = CONTRACT_PRESETS.map((p) => p.rawText.toLowerCase()).join(" ");
+    expect(textAll).toContain("indemnif");
+    expect(textAll).toContain("terminat");
+    expect(textAll).toContain("liability");
+  });
+
+  it("ensures each preset has a minimum word count of 50 words", () => {
+    CONTRACT_PRESETS.forEach((preset) => {
+      const words = preset.rawText.trim().split(/\s+/).length;
+      expect(words).toBeGreaterThan(50);
+    });
+  });
 });

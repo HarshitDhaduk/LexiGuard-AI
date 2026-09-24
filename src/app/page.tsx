@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
+import dynamic from "next/dynamic";
 import Navbar from "@/components/Navbar";
 import DisclaimerBanner from "@/components/DisclaimerBanner";
 import AccessibilityBar from "@/components/AccessibilityBar";
@@ -9,115 +10,100 @@ import LandingHero from "@/components/LandingHero";
 import DocumentInput from "@/components/DocumentInput";
 import RiskHeatmap from "@/components/RiskHeatmap";
 import GroundedChat from "@/components/GroundedChat";
-import RedlineCompare from "@/components/RedlineCompare";
-import NegotiationStudio from "@/components/NegotiationStudio";
-import LawyerDossier from "@/components/LawyerDossier";
-import SplitContractReader from "@/components/SplitContractReader";
+import TabLoadingSkeleton from "@/components/TabLoadingSkeleton";
 import OnboardingModal from "@/components/OnboardingModal";
 import { CONTRACT_PRESETS } from "@/lib/presets";
-import { sanitizeContractText } from "@/lib/pii";
-import {
-  ContractAnalysisResult,
-  AnalyzedClause,
-  SanitizationResult,
-} from "@/lib/types";
+import { useAccessibilityState } from "@/hooks/useAccessibilityState";
+import { useContractAudit } from "@/hooks/useContractAudit";
 import {
   RotateCcw,
-  Sparkles,
   Layers,
-  ArrowRight,
-  ShieldCheck,
-  CheckCircle,
   Columns,
 } from "lucide-react";
 
+// Performance code-splitting: Lazy-load heavy secondary modules
+const RedlineCompare = dynamic(() => import("@/components/RedlineCompare"), {
+  ssr: false,
+  loading: () => (
+    <TabLoadingSkeleton
+      title="Loading Redline Diff Engine..."
+      subtitle="Optimizing bundle for high-speed legal diff analysis"
+    />
+  ),
+});
+
+const NegotiationStudio = dynamic(
+  () => import("@/components/NegotiationStudio"),
+  {
+    ssr: false,
+    loading: () => (
+      <TabLoadingSkeleton
+        title="Loading Counter-Drafting Studio..."
+        subtitle="Preparing protective legal strategies and rationale"
+      />
+    ),
+  }
+);
+
+const LawyerDossier = dynamic(() => import("@/components/LawyerDossier"), {
+  ssr: false,
+  loading: () => (
+    <TabLoadingSkeleton
+      title="Generating Lawyer Briefing Dossier..."
+      subtitle="Formatting structured summary and questions for counsel"
+    />
+  ),
+});
+
+const SplitContractReader = dynamic(
+  () => import("@/components/SplitContractReader"),
+  {
+    ssr: false,
+    loading: () => (
+      <TabLoadingSkeleton
+        title="Loading Split Contract Reader..."
+        subtitle="Syncing clause coordinates with original agreement text"
+      />
+    ),
+  }
+);
+
 export default function Home() {
-  const [rawText, setRawText] = useState(CONTRACT_PRESETS[0].rawText);
-  const [selectedPresetId, setSelectedPresetId] = useState<string | null>(
-    CONTRACT_PRESETS[0].id
+  const {
+    fontSizeLevel,
+    setFontSizeLevel,
+    highContrast,
+    setHighContrast,
+    announcement,
+    announce,
+    fontSizeClass,
+  } = useAccessibilityState(
+    (tabId) => setActiveTab(tabId),
+    () => setShowOnboarding(true)
   );
-  const [analysis, setAnalysis] = useState<ContractAnalysisResult | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState("audit");
-  const [selectedClauseForNegotiation, setSelectedClauseForNegotiation] =
-    useState<AnalyzedClause | null>(null);
-  const [sanitizationInfo, setSanitizationInfo] =
-    useState<SanitizationResult | null>(null);
 
-  // Accessibility State
-  const [fontSizeLevel, setFontSizeLevel] = useState<"normal" | "medium" | "large">("normal");
-  const [highContrast, setHighContrast] = useState(false);
-  const [showSplitView, setShowSplitView] = useState(true);
-  const [highlightedClauseId, setHighlightedClauseId] = useState<string | null>(null);
-  const [showOnboarding, setShowOnboarding] = useState(false);
-
-  const handleAnalyze = async (
-    payloadText: string,
-    sanitizationResult: SanitizationResult
-  ) => {
-    setIsLoading(true);
-    setSanitizationInfo(sanitizationResult);
-    try {
-      const res = await fetch("/api/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: payloadText }),
-      });
-      const json = await res.json();
-      if (json.success && json.data) {
-        setAnalysis(json.data);
-        setActiveTab("audit");
-        // Scroll smoothly to the results workbench
-        setTimeout(() => {
-          document
-            .getElementById("analysis-workbench")
-            ?.scrollIntoView({ behavior: "smooth" });
-        }, 100);
-      } else {
-        alert(json.error || "Analysis failed. Please check your text.");
-      }
-    } catch (err) {
-      console.error("Analysis request error:", err);
-      alert("Network error connecting to analysis endpoint.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSelectPresetAndAudit = (presetId: string) => {
-    const preset = CONTRACT_PRESETS.find((p) => p.id === presetId);
-    if (preset) {
-      setSelectedPresetId(preset.id);
-      setRawText(preset.rawText);
-      const res = sanitizeContractText(preset.rawText);
-      handleAnalyze(res.sanitizedText, res);
-    }
-  };
-
-  const handleScrollToInput = () => {
-    document
-      .getElementById("document-input-section")
-      ?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  const handleSelectClauseForNegotiation = (clause: AnalyzedClause) => {
-    setSelectedClauseForNegotiation(clause);
-    setActiveTab("negotiate");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const handleResetToLanding = () => {
-    setAnalysis(null);
-    setActiveTab("audit");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const fontSizeClass =
-    fontSizeLevel === "large"
-      ? "text-[115%]"
-      : fontSizeLevel === "medium"
-      ? "text-[107%]"
-      : "text-[100%]";
+  const {
+    rawText,
+    setRawText,
+    selectedPresetId,
+    setSelectedPresetId,
+    analysis,
+    isLoading,
+    activeTab,
+    setActiveTab,
+    selectedClauseForNegotiation,
+    showSplitView,
+    setShowSplitView,
+    highlightedClauseId,
+    setHighlightedClauseId,
+    showOnboarding,
+    setShowOnboarding,
+    handleAnalyze,
+    handleSelectPresetAndAudit,
+    handleScrollToInput,
+    handleSelectClauseForNegotiation,
+    handleResetToLanding,
+  } = useContractAudit(announce);
 
   return (
     <div
@@ -125,10 +111,20 @@ export default function Home() {
         highContrast ? "bg-black text-white" : "bg-[#0b0f19] text-gray-100"
       }`}
     >
-      {/* Skip to Content for Accessibility */}
+      {/* Screen Reader Live Announcements */}
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {announcement}
+      </div>
+
+      {/* Skip to Content for WCAG Accessibility */}
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:p-2 focus:bg-blue-600 focus:text-white focus:rounded"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:p-2 focus:bg-blue-600 focus:text-white focus:rounded focus:outline-none focus:ring-2 focus:ring-white"
       >
         Skip to main content
       </a>
@@ -156,7 +152,10 @@ export default function Home() {
         onResetToLanding={handleResetToLanding}
       />
 
-      <main id="main-content" className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 space-y-8">
+      <main
+        id="main-content"
+        className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 space-y-8"
+      >
         <ErrorBoundary fallbackTitle="LexiGuard Platform Error">
           {/* Landing Page Hero & Onboarding (shown if no analysis) */}
           {!analysis && (
@@ -197,7 +196,8 @@ export default function Home() {
                       </span>
                     </div>
                     <p className="text-xs text-gray-400 mt-0.5">
-                      Deconstructed by <strong>Gemini 2.5 Flash</strong> • {analysis.clauses.length} clauses analyzed
+                      Deconstructed by <strong>Gemini 2.5 Flash</strong> •{" "}
+                      {analysis.clauses.length} clauses analyzed
                     </p>
                   </div>
                 </div>
@@ -207,7 +207,7 @@ export default function Home() {
                   {activeTab === "audit" && (
                     <button
                       type="button"
-                      onClick={() => setShowSplitView(!showSplitView)}
+                      onClick={() => setShowSplitView((prev) => !prev)}
                       className={`px-3 py-1.5 text-xs font-semibold rounded-lg flex items-center space-x-1.5 transition-colors border ${
                         showSplitView
                           ? "bg-indigo-950/70 border-indigo-700 text-indigo-300"
@@ -215,11 +215,16 @@ export default function Home() {
                       }`}
                     >
                       <Columns className="w-3.5 h-3.5" />
-                      <span>{showSplitView ? "Hide Contract Reader" : "Split Contract Reader"}</span>
+                      <span>
+                        {showSplitView
+                          ? "Hide Contract Reader"
+                          : "Split Contract Reader"}
+                      </span>
                     </button>
                   )}
 
                   <button
+                    type="button"
                     onClick={handleResetToLanding}
                     className="px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg flex items-center space-x-1.5 transition-colors border border-gray-700"
                   >
@@ -237,7 +242,9 @@ export default function Home() {
                       <div className="lg:col-span-7 space-y-6">
                         <RiskHeatmap
                           analysis={analysis}
-                          onSelectForNegotiation={handleSelectClauseForNegotiation}
+                          onSelectForNegotiation={
+                            handleSelectClauseForNegotiation
+                          }
                           originalContractText={rawText}
                         />
                       </div>
@@ -246,7 +253,9 @@ export default function Home() {
                           contractText={rawText}
                           clauses={analysis.clauses}
                           activeClauseId={highlightedClauseId}
-                          onSelectClause={(clause) => setHighlightedClauseId(clause.id)}
+                          onSelectClause={(clause) =>
+                            setHighlightedClauseId(clause.id)
+                          }
                         />
                       </div>
                     </div>
@@ -260,13 +269,9 @@ export default function Home() {
                 </>
               )}
 
-              {activeTab === "qa" && (
-                <GroundedChat contractText={rawText} />
-              )}
+              {activeTab === "qa" && <GroundedChat contractText={rawText} />}
 
-              {activeTab === "compare" && (
-                <RedlineCompare />
-              )}
+              {activeTab === "compare" && <RedlineCompare />}
 
               {activeTab === "negotiate" && (
                 <NegotiationStudio
@@ -275,9 +280,7 @@ export default function Home() {
                 />
               )}
 
-              {activeTab === "dossier" && (
-                <LawyerDossier analysis={analysis} />
-              )}
+              {activeTab === "dossier" && <LawyerDossier analysis={analysis} />}
             </div>
           )}
         </ErrorBoundary>
@@ -286,22 +289,29 @@ export default function Home() {
         <OnboardingModal
           isOpen={showOnboarding}
           onClose={() => setShowOnboarding(false)}
-          onSelectPreset={(idx) => handleSelectPresetAndAudit(CONTRACT_PRESETS[idx].id)}
+          onSelectPreset={(idx) =>
+            handleSelectPresetAndAudit(CONTRACT_PRESETS[idx].id)
+          }
         />
       </main>
 
-      {/* Footer */}
-      <footer className="mt-auto border-t border-gray-800/80 bg-gray-950/90 py-8 text-xs text-gray-500">
+      {/* Accessible High-Contrast Footer */}
+      <footer className="mt-auto border-t border-gray-800 bg-gray-950/90 py-8 text-xs text-gray-400">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
-            <div className="font-bold text-gray-400">LexiGuard AI</div>
-            <p className="text-[11px] text-gray-600">
-              Built with Google Gemini 2.5 Flash for PromptWars: Virtual (Exclusive Edition).
+            <div className="font-bold text-gray-300">LexiGuard AI</div>
+            <p className="text-[11px] text-gray-400">
+              Built with Google Gemini 2.5 Flash for PromptWars: Virtual
+              (Exclusive Edition).
             </p>
           </div>
-          <div className="text-[11px] text-gray-500 sm:text-right space-y-0.5">
-            <div>Strict repository size guard &lt; 10 MB • Single `main` branch</div>
-            <div>Client-Side PII privacy shield • Educational legal navigation</div>
+          <div className="text-[11px] text-gray-400 sm:text-right space-y-0.5">
+            <div>
+              Strict repository size guard &lt; 10 MB • Single `main` branch
+            </div>
+            <div>
+              Client-Side PII privacy shield • Educational legal navigation
+            </div>
           </div>
         </div>
       </footer>

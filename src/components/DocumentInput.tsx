@@ -168,7 +168,7 @@ export default function DocumentInput({
                   </div>
 
                   <div className="pt-2 flex items-center justify-between border-t border-gray-800/80">
-                    <span className="text-[11px] text-gray-500 font-mono">
+                    <span className="text-[11px] text-gray-400 font-mono">
                       {isSelected ? "Selected ✓" : "Click to load"}
                     </span>
                     <button
@@ -231,7 +231,7 @@ export default function DocumentInput({
               className="w-full bg-gray-950 border border-gray-800 rounded-xl p-4 text-xs sm:text-sm font-mono text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all leading-relaxed"
             />
 
-            <div className="absolute bottom-3 right-3 flex items-center space-x-2 text-[11px] text-gray-500 bg-gray-900/90 px-2.5 py-1 rounded-md border border-gray-800 pointer-events-none">
+            <div className="absolute bottom-3 right-3 flex items-center space-x-2 text-[11px] text-gray-300 bg-gray-900/90 px-2.5 py-1 rounded-md border border-gray-800 pointer-events-none">
               <span>{wordCount} words</span>
               <span>•</span>
               <span>{charCount} chars</span>
