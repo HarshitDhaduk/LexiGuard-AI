@@ -13,6 +13,7 @@ import RedlineCompare from "@/components/RedlineCompare";
 import NegotiationStudio from "@/components/NegotiationStudio";
 import LawyerDossier from "@/components/LawyerDossier";
 import SplitContractReader from "@/components/SplitContractReader";
+import OnboardingModal from "@/components/OnboardingModal";
 import { CONTRACT_PRESETS } from "@/lib/presets";
 import { sanitizeContractText } from "@/lib/pii";
 import {
@@ -48,6 +49,7 @@ export default function Home() {
   const [highContrast, setHighContrast] = useState(false);
   const [showSplitView, setShowSplitView] = useState(true);
   const [highlightedClauseId, setHighlightedClauseId] = useState<string | null>(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   const handleAnalyze = async (
     payloadText: string,
@@ -141,6 +143,7 @@ export default function Home() {
         highContrast={highContrast}
         setHighContrast={setHighContrast}
         onTabSelect={(tabId) => setActiveTab(tabId)}
+        onOpenTour={() => setShowOnboarding(true)}
       />
 
       {/* Navigation Header */}
@@ -235,6 +238,7 @@ export default function Home() {
                         <RiskHeatmap
                           analysis={analysis}
                           onSelectForNegotiation={handleSelectClauseForNegotiation}
+                          originalContractText={rawText}
                         />
                       </div>
                       <div className="lg:col-span-5 sticky top-28">
@@ -250,6 +254,7 @@ export default function Home() {
                     <RiskHeatmap
                       analysis={analysis}
                       onSelectForNegotiation={handleSelectClauseForNegotiation}
+                      originalContractText={rawText}
                     />
                   )}
                 </>
@@ -276,6 +281,13 @@ export default function Home() {
             </div>
           )}
         </ErrorBoundary>
+
+        {/* 5-Step Guided Onboarding Tour Modal */}
+        <OnboardingModal
+          isOpen={showOnboarding}
+          onClose={() => setShowOnboarding(false)}
+          onSelectPreset={(idx) => handleSelectPresetAndAudit(CONTRACT_PRESETS[idx].id)}
+        />
       </main>
 
       {/* Footer */}

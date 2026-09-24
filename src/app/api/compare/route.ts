@@ -1,14 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { compareContractsWithGemini } from "@/lib/gemini";
 import { apiRateLimiter } from "@/lib/rate-limiter";
-import { getClientIp, sanitizePromptInput } from "@/lib/security";
+import { getClientIp, sanitizePromptInput, getCorsHeaders } from "@/lib/security";
+
+export async function OPTIONS(req: NextRequest) {
+  const origin = req.headers.get("origin");
+  return new Response(null, {
+    status: 204,
+    headers: getCorsHeaders(origin),
+  });
+}
 
 export async function POST(req: NextRequest) {
   try {
+    const origin = req.headers.get("origin");
+    const corsHeaders = getCorsHeaders(origin);
     const ip = getClientIp(req.headers);
     const rateLimit = apiRateLimiter.check(ip);
 
     const headers = {
+      ...corsHeaders,
       "X-RateLimit-Limit": rateLimit.limit.toString(),
       "X-RateLimit-Remaining": rateLimit.remaining.toString(),
       "X-RateLimit-Reset": rateLimit.resetTimeMs.toString(),

@@ -17,6 +17,7 @@ interface AccessibilityBarProps {
   highContrast: boolean;
   setHighContrast: (val: boolean) => void;
   onTabSelect: (tabId: string) => void;
+  onOpenTour?: () => void;
 }
 
 export default function AccessibilityBar({
@@ -25,6 +26,7 @@ export default function AccessibilityBar({
   highContrast,
   setHighContrast,
   onTabSelect,
+  onOpenTour,
 }: AccessibilityBarProps) {
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
 
@@ -134,8 +136,18 @@ export default function AccessibilityBar({
             </div>
           </div>
 
-          {/* Right: Keyboard Shortcuts Trigger */}
+          {/* Right: Keyboard Shortcuts & Tour Trigger */}
           <div className="flex items-center space-x-2">
+            {onOpenTour && (
+              <button
+                onClick={onOpenTour}
+                className="flex items-center space-x-1 text-[11px] text-blue-300 hover:text-white bg-blue-950/60 px-2 py-0.5 rounded border border-blue-800/80 transition-colors"
+                title="Open 5-Step Guided Walkthrough"
+              >
+                <Sparkles className="w-3 h-3 text-blue-400" />
+                <span>Quick Tour</span>
+              </button>
+            )}
             <button
               onClick={() => setShowShortcutsModal(true)}
               className="flex items-center space-x-1 text-[11px] text-gray-400 hover:text-white bg-gray-900/90 px-2 py-0.5 rounded border border-gray-800 transition-colors"

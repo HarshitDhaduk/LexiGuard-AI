@@ -49,40 +49,97 @@ export default function GroundedChat({ contractText }: GroundedChatProps) {
 
     setMessages((prev) => [...prev, userMessage]);
     setInputQuery("");
-    setIsLoading(true);
+    const assistantId = `asst-${Date.now()}`;
+    const placeholderAssistant: ChatMessage = {
+      id: assistantId,
+      role: "assistant",
+      content: "",
+      citations: [],
+      timestamp: Date.now(),
+    };
+    setMessages((prev) => [...prev, placeholderAssistant]);
 
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "text/event-stream",
+        },
         body: JSON.stringify({
           contractText,
           query,
           history: messages.map((m) => ({ role: m.role, content: m.content })),
+          stream: true,
         }),
       });
 
-      const json = await res.json();
-      if (json.success && json.data) {
-        const assistantMessage: ChatMessage = {
-          id: `asst-${Date.now()}`,
-          role: "assistant",
-          content: json.data.answer,
-          citations: json.data.citations || [],
-          timestamp: Date.now(),
-        };
-        setMessages((prev) => [...prev, assistantMessage]);
+      if (!res.ok) {
+        const errorJson = await res.json().catch(() => ({}));
+        throw new Error(errorJson.error || `HTTP error ${res.status}`);
+      }
+
+      if (res.headers.get("content-type")?.includes("text/event-stream") && res.body) {
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let accumulatedText = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const decoded = decoder.decode(value, { stream: true });
+          const lines = decoded.split("\n");
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              const dataStr = line.slice(6).trim();
+              if (dataStr === "[DONE]") break;
+              try {
+                const parsed = JSON.parse(dataStr);
+                if (parsed.chunk) {
+                  accumulatedText += parsed.chunk;
+                  setMessages((prev) =>
+                    prev.map((msg) =>
+                      msg.id === assistantId
+                        ? { ...msg, content: accumulatedText }
+                        : msg
+                    )
+                  );
+                }
+              } catch {
+                // Ignore partial JSON chunks
+              }
+            }
+          }
+        }
       } else {
-        throw new Error(json.error || "Failed to generate answer");
+        const json = await res.json();
+        if (json.success && json.data) {
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === assistantId
+                ? {
+                    ...msg,
+                    content: json.data.answer,
+                    citations: json.data.citations || [],
+                  }
+                : msg
+            )
+          );
+        } else {
+          throw new Error(json.error || "Failed to generate answer");
+        }
       }
     } catch (err: any) {
-      const errorMessage: ChatMessage = {
-        id: `err-${Date.now()}`,
-        role: "assistant",
-        content: `Error generating response: ${err.message || "Please check your network connection and try again."}`,
-        timestamp: Date.now(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === assistantId
+            ? {
+                ...msg,
+                content: `Error generating response: ${err.message || "Please check your network connection and try again."}`,
+              }
+            : msg
+        )
+      );
     } finally {
       setIsLoading(false);
     }

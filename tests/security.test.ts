@@ -1,5 +1,10 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { sanitizePromptInput, getClientIp } from "../src/lib/security";
+import {
+  sanitizePromptInput,
+  getClientIp,
+  sanitizeHtml,
+  getCorsHeaders,
+} from "../src/lib/security";
 import { apiRateLimiter } from "../src/lib/rate-limiter";
 
 describe("Security & Adversarial Defenses (sanitizePromptInput)", () => {
@@ -90,3 +95,32 @@ describe("API Rate Limiter (apiRateLimiter)", () => {
     expect(blockedResult.retryAfterSeconds).toBeGreaterThan(0);
   });
 });
+
+describe("XSS Sanitization & CORS Defenses", () => {
+  it("escapes dangerous HTML tags and script injection vectors", () => {
+    const dirty = '<script>alert("XSS")</script><iframe src="evil.com"></iframe>';
+    const clean = sanitizeHtml(dirty);
+
+    expect(clean).not.toContain("<script>");
+    expect(clean).not.toContain("<iframe>");
+    expect(clean).toContain("&lt;script&gt;");
+  });
+
+  it("neutralizes javascript: pseudo-protocols and data-html URIs", () => {
+    const maliciousHref = 'javascript:stealCookies()';
+    const clean = sanitizeHtml(maliciousHref);
+
+    expect(clean).not.toContain("javascript:");
+    expect(clean).toContain("blocked-scheme:");
+  });
+
+  it("configures restrictive CORS headers matching allowed origins", () => {
+    const allowed = getCorsHeaders("https://lexi-guard-ai-phi.vercel.app");
+    expect(allowed["Access-Control-Allow-Origin"]).toBe("https://lexi-guard-ai-phi.vercel.app");
+    expect(allowed["Access-Control-Allow-Methods"]).toContain("POST");
+
+    const disallowed = getCorsHeaders("https://untrusted-hacker-site.org");
+    expect(disallowed["Access-Control-Allow-Origin"]).toBe("https://lexi-guard-ai-phi.vercel.app");
+  });
+});
+

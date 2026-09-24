@@ -614,3 +614,60 @@ ${query}`;
     throw err;
   }
 }
+
+/**
+ * Streams grounded scenario answers using Gemini's native generateContentStream
+ */
+export async function* streamChatGroundedWithGemini(
+  contractText: string,
+  query: string,
+  history: Array<{ role: string; content: string }> = []
+): AsyncGenerator<string, void, unknown> {
+  const validation = sanitizePromptInput(query, 5000);
+  const safeQuery = validation.isValid ? validation.sanitizedText : query;
+  const client = getGeminiClient();
+
+  if (!client) {
+    const fallbackAnswer = `Based on the provided agreement, Section 2 states that payment is Net-90 with no late fees permitted. Section 7 provides that the client may terminate immediately without cause upon email notice, whereas you must provide 90 days notice via certified mail. Furthermore, in the event of early termination by the client, you are not entitled to prorated compensation for work in progress.\n\n⚠️ Legal Note: This is an informational breakdown of the text, not formal legal counsel.`;
+    const words = fallbackAnswer.split(" ");
+    for (const word of words) {
+      yield word + " ";
+      await new Promise((r) => setTimeout(r, 15));
+    }
+    return;
+  }
+
+  try {
+    const model = client.getGenerativeModel({
+      model: "gemini-1.5-flash",
+      generationConfig: {
+        temperature: 0.2,
+      },
+    });
+
+    const prompt = `You are LexiGuard AI. Answer the user's question about the contract text strictly using facts from the contract.
+Rules:
+1. Every major statement MUST cite the relevant clause or section.
+2. If the user asks about something NOT in the contract, explicitly state: "⚠️ This contract does not specify [topic]. Statutory defaults may apply."
+3. If the user asks for legal advice on how to break the law or evade obligations, refuse politely and uphold legal boundaries.
+4. End your response with a brief 1-line educational disclaimer.
+
+CONTRACT TEXT:
+${contractText}
+
+QUESTION:
+${safeQuery}`;
+
+    const streamResult = await model.generateContentStream(prompt);
+    for await (const chunk of streamResult.stream) {
+      const chunkText = chunk.text();
+      if (chunkText) {
+        yield chunkText;
+      }
+    }
+  } catch (err) {
+    console.error("Gemini stream error:", err);
+    yield "An error occurred while streaming the response from Gemini. Please try again.";
+  }
+}
+

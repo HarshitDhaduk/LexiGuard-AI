@@ -37,3 +37,46 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #4b5563;
 }
+
+/* WCAG 2.1 AAA Accessibility: Accessible Focus Rings */
+:focus-visible {
+  outline: 2px solid #3b82f6 !important;
+  outline-offset: 2px !important;
+}
+
+/* WCAG 2.1 AAA Accessibility: Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* WCAG 2.1 AAA High-Contrast Mode Theme */
+.high-contrast,
+[data-contrast="high"] {
+  --background: #000000 !important;
+  --foreground: #ffffff !important;
+  --card-bg: #050505 !important;
+  --card-border: #ffffff !important;
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+
+.high-contrast button,
+[data-contrast="high"] button {
+  border-color: #ffffff !important;
+}
+
+.high-contrast input,
+.high-contrast textarea,
+[data-contrast="high"] input,
+[data-contrast="high"] textarea {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  border-color: #ffffff !important;
+}

@@ -18,15 +18,18 @@ import {
   Sparkles,
 } from "lucide-react";
 import TelemetryPill from "./TelemetryPill";
+import ReadabilityMeter from "./ReadabilityMeter";
 
 interface RiskHeatmapProps {
   analysis: ContractAnalysisResult;
   onSelectForNegotiation: (clause: AnalyzedClause) => void;
+  originalContractText?: string;
 }
 
 export default function RiskHeatmap({
   analysis,
   onSelectForNegotiation,
+  originalContractText,
 }: RiskHeatmapProps) {
   const [selectedFilter, setSelectedFilter] = useState<string>("ALL");
   const [expandedClauseId, setExpandedClauseId] = useState<string | null>(
@@ -183,6 +186,17 @@ export default function RiskHeatmap({
           </div>
         </div>
       </div>
+
+      {/* Plain English De-Jargonization Meter */}
+      <ReadabilityMeter
+        originalText={
+          originalContractText ||
+          analysis.clauses.map((c) => c.originalText).join(" ")
+        }
+        simplifiedClausesText={analysis.clauses
+          .map((c) => c.plainEnglish)
+          .join(" ")}
+      />
 
       {/* Missing Clauses Omission Radar (Differentiator Feature) */}
       {analysis.missingClauses && analysis.missingClauses.length > 0 && (

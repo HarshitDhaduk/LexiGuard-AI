@@ -71,8 +71,9 @@ export function sanitizePromptInput(
   let sanitized = rawText;
   const threatsDetected: string[] = [];
 
-  // Remove null bytes and invisible control characters (except standard newlines/tabs)
+  // Remove null bytes, non-printable control chars, and path traversal tokens
   sanitized = sanitized.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
+  sanitized = sanitized.replace(/\.\.[\/\\]/g, "");
 
   // Detect and neutralize known prompt injection patterns
   for (const pattern of INJECTION_PATTERNS) {
@@ -90,6 +91,44 @@ export function sanitizePromptInput(
     isValid: true,
     sanitizedText: sanitized,
     threatsDetected,
+  };
+}
+
+/**
+ * Escapes potentially dangerous HTML entities to prevent Cross-Site Scripting (XSS)
+ */
+export function sanitizeHtml(dirty: string): string {
+  if (!dirty || typeof dirty !== "string") return "";
+  return dirty
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;")
+    .replace(/\//g, "&#x2F;")
+    .replace(/javascript:/gi, "blocked-scheme:")
+    .replace(/data:text\/html/gi, "blocked-data-html:");
+}
+
+/**
+ * Validates and provides restrictive CORS headers for API routes
+ */
+export function getCorsHeaders(origin?: string | null): Record<string, string> {
+  const allowedOrigins = [
+    "http://localhost:3000",
+    "https://lexi-guard-ai-phi.vercel.app",
+  ];
+
+  const requestOrigin = origin || "";
+  const isAllowed =
+    allowedOrigins.includes(requestOrigin) ||
+    requestOrigin.endsWith(".vercel.app");
+
+  return {
+    "Access-Control-Allow-Origin": isAllowed ? requestOrigin : allowedOrigins[1],
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
+    "Access-Control-Max-Age": "86400",
   };
 }
 
