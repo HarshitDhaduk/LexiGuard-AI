@@ -16,6 +16,7 @@ import {
   Layers,
   FileWarning,
   Sparkles,
+  Scale,
 } from "lucide-react";
 import TelemetryPill from "./TelemetryPill";
 import ReadabilityMeter from "./ReadabilityMeter";
@@ -24,12 +25,14 @@ interface RiskHeatmapProps {
   analysis: ContractAnalysisResult;
   onSelectForNegotiation: (clause: AnalyzedClause) => void;
   originalContractText?: string;
+  onOpenLegalAid?: () => void;
 }
 
 export default function RiskHeatmap({
   analysis,
   onSelectForNegotiation,
   originalContractText,
+  onOpenLegalAid,
 }: RiskHeatmapProps) {
   const [selectedFilter, setSelectedFilter] = useState<string>("ALL");
   const [expandedClauseId, setExpandedClauseId] = useState<string | null>(
@@ -185,6 +188,37 @@ export default function RiskHeatmap({
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Access to Justice Banner & Safety Gate */}
+      <div className="bg-gradient-to-r from-emerald-950/40 via-blue-950/30 to-purple-950/30 border border-emerald-800/60 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md">
+        <div className="flex items-center space-x-3">
+          <div className="p-2 rounded-lg bg-emerald-950 border border-emerald-700/60 text-emerald-400">
+            <Scale className="w-5 h-5" />
+          </div>
+          <div>
+            <h4 className="text-xs font-bold text-white flex items-center space-x-2">
+              <span>Legal Assistance &amp; Safety Gate</span>
+              <span className="text-[10px] bg-emerald-900/60 text-emerald-300 px-1.5 py-0.2 rounded font-mono">
+                Free Aid Available
+              </span>
+            </h4>
+            <p className="text-[11px] text-gray-300 mt-0.5">
+              Identified <strong>{criticalCount + highCount} high-risk clauses</strong>. Review pro bono legal aid networks or verify with the 5-point Pre-Signing Checklist before signing.
+            </p>
+          </div>
+        </div>
+
+        {onOpenLegalAid && (
+          <button
+            type="button"
+            onClick={onOpenLegalAid}
+            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-colors self-start sm:self-auto flex-shrink-0 shadow"
+          >
+            <span>Open Legal Aid &amp; Checklist</span>
+            <ArrowUpRight className="w-3.5 h-3.5" />
+          </button>
+        )}
       </div>
 
       {/* Plain English De-Jargonization Meter */}

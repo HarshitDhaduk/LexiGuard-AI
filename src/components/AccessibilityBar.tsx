@@ -58,6 +58,9 @@ export default function AccessibilityBar({
         case "5":
           onTabSelect("dossier");
           break;
+        case "6":
+          onTabSelect("aid");
+          break;
         case "?":
           setShowShortcutsModal((prev) => !prev);
           break;
@@ -204,6 +207,10 @@ export default function AccessibilityBar({
               <div className="flex items-center justify-between p-2 rounded bg-gray-950 border border-gray-800/80">
                 <span>Switch to <strong>05. Lawyer Briefing Pack</strong></span>
                 <kbd className="px-2 py-1 rounded bg-gray-800 font-mono text-gray-300 border border-gray-700">5</kbd>
+              </div>
+              <div className="flex items-center justify-between p-2 rounded bg-gray-950 border border-gray-800/80">
+                <span>Switch to <strong>06. Legal Aid &amp; Checklist</strong></span>
+                <kbd className="px-2 py-1 rounded bg-gray-800 font-mono text-gray-300 border border-gray-700">6</kbd>
               </div>
               <div className="flex items-center justify-between p-2 rounded bg-gray-950 border border-gray-800/80">
                 <span>Close Active Modals / Drawers</span>

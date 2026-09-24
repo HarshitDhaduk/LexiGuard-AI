@@ -68,6 +68,32 @@ const SplitContractReader = dynamic(
   }
 );
 
+const LegalAidDirectory = dynamic(
+  () => import("@/components/LegalAidDirectory"),
+  {
+    ssr: false,
+    loading: () => (
+      <TabLoadingSkeleton
+        title="Loading Legal Aid Directory..."
+        subtitle="Connecting to pro bono legal aid networks and statutory consumer rights"
+      />
+    ),
+  }
+);
+
+const SigningSafetyChecklist = dynamic(
+  () => import("@/components/SigningSafetyChecklist"),
+  {
+    ssr: false,
+    loading: () => (
+      <TabLoadingSkeleton
+        title="Loading Pre-Signing Safety Checklist..."
+        subtitle="Preparing 5-point verification gates for legal protection"
+      />
+    ),
+  }
+);
+
 export default function Home() {
   const {
     fontSizeLevel,
@@ -157,8 +183,8 @@ export default function Home() {
         className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 space-y-8"
       >
         <ErrorBoundary fallbackTitle="LexiGuard Platform Error">
-          {/* Landing Page Hero & Onboarding (shown if no analysis) */}
-          {!analysis && (
+          {/* Landing Page Hero & Onboarding (shown if no analysis and not on aid tab) */}
+          {!analysis && activeTab !== "aid" && (
             <>
               <LandingHero
                 onSelectPresetAndAudit={handleSelectPresetAndAudit}
@@ -175,6 +201,14 @@ export default function Home() {
                 setSelectedPresetId={setSelectedPresetId}
               />
             </>
+          )}
+
+          {/* Legal Aid Directory & Safety Checklist (Available pre-audit) */}
+          {!analysis && activeTab === "aid" && (
+            <div className="space-y-6">
+              <SigningSafetyChecklist />
+              <LegalAidDirectory />
+            </div>
           )}
 
           {/* Active Analysis Workbench View */}
@@ -246,6 +280,7 @@ export default function Home() {
                             handleSelectClauseForNegotiation
                           }
                           originalContractText={rawText}
+                          onOpenLegalAid={() => setActiveTab("aid")}
                         />
                       </div>
                       <div className="lg:col-span-5 sticky top-28">
@@ -264,6 +299,7 @@ export default function Home() {
                       analysis={analysis}
                       onSelectForNegotiation={handleSelectClauseForNegotiation}
                       originalContractText={rawText}
+                      onOpenLegalAid={() => setActiveTab("aid")}
                     />
                   )}
                 </>
@@ -281,6 +317,13 @@ export default function Home() {
               )}
 
               {activeTab === "dossier" && <LawyerDossier analysis={analysis} />}
+
+              {activeTab === "aid" && (
+                <div className="space-y-6">
+                  <SigningSafetyChecklist />
+                  <LegalAidDirectory />
+                </div>
+              )}
             </div>
           )}
         </ErrorBoundary>

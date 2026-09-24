@@ -66,6 +66,13 @@ export default function Navbar({
       icon: Briefcase,
       requiresData: true,
     },
+    {
+      id: "aid",
+      step: "06",
+      label: "Legal Aid & Checklist",
+      icon: Scale,
+      requiresData: false,
+    },
   ];
 
   return (

@@ -62,6 +62,10 @@ export function useAccessibilityState(
           if (onTabSelect) onTabSelect("dossier");
           announce("Switched to Lawyer Briefing Dossier");
           break;
+        case "6":
+          if (onTabSelect) onTabSelect("aid");
+          announce("Switched to Legal Aid Directory & Safety Checklist");
+          break;
         case "?":
           if (onOpenTour) onOpenTour();
           announce("Opened Guided Tour");
