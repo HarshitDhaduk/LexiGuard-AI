@@ -65,6 +65,8 @@ export interface ContractAnalysisResult {
     cached: boolean;
     executionTimeMs: number;
     tokensSaved?: number;
+    analysisEngine?: "gemini-2.5-flash" | "gemini-2.0-flash" | "deterministic-ast-engine";
+    fallbackTriggered?: boolean;
   };
 }
 

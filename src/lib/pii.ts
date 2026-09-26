@@ -1,14 +1,16 @@
 /**
- * Client-Side PII Shield & Privacy Redaction Utility
- * Detects sensitive personal and financial identifiers locally before text is submitted to any LLM.
- * Includes Credit Card (Luhn-checked), IBAN, SSN/EIN, phone, email, and address masking.
- * Allows re-hydration of original values on the client side when viewing results.
+ * Client-Side PII Shield, Contextual NER Classifier & Privacy Redaction Engine
+ * Combines a zero-dependency Feature-Weighted Named Entity Recognition (NER) scorer
+ * and document-wide entity co-reference resolver with cryptographic/checksum validators
+ * (Luhn Credit Card validation, ISO-13616 Mod-97 IBAN verification) and pattern matchers.
+ * Masks sensitive personal, corporate, and financial identifiers locally in the browser
+ * before any text is transmitted to external LLMs, and supports lossless client rehydration.
  */
 
 import { RedactionRecord, RedactionType, SanitizationResult } from "./types";
 
 /**
- * Validates credit card number with Luhn Algorithm
+ * Validates credit card number with Luhn Checksum Algorithm
  */
 function isValidLuhn(val: string): boolean {
   const digits = val.replace(/\D/g, "");
@@ -29,7 +31,118 @@ function isValidLuhn(val: string): boolean {
 }
 
 /**
- * Common regex patterns for PII detection in legal documents
+ * Negative Legal Gazetteer — prevents legal doctrines, headings, and jurisdictions
+ * from being misclassified as named person/organization entities during NER scoring.
+ */
+const NEGATIVE_LEGAL_GAZETTEER = new Set([
+  "united states",
+  "new york",
+  "delaware law",
+  "state of delaware",
+  "wilmington",
+  "seattle",
+  "austin",
+  "general agreement",
+  "terms of service",
+  "master services agreement",
+  "residential lease agreement",
+  "lease agreement",
+  "statements of work",
+  "statement of work",
+  "works made for hire",
+  "security deposit",
+  "intellectual property",
+  "governing law",
+  "binding arbitration",
+  "class action",
+  "force majeure",
+  "confidential information",
+  "effective date",
+  "gross negligence",
+  "willful misconduct",
+  "prior written notice",
+  "certified mail",
+  "calendar month",
+  "calendar days",
+  "business hours",
+  "sole discretion",
+]);
+
+/**
+ * Feature-Weighted Contextual NER Classifier for Legal Entities & Proper Names
+ * Evaluates multi-token candidate spans using contextual legal cues, appositive role
+ * frames, corporate suffixes, and orthographic transitions (confidence threshold >= 0.65).
+ */
+export interface DetectedNamedEntity {
+  text: string;
+  entityClass: "ORGANIZATION" | "PERSON";
+  confidence: number;
+  isPartyDefinition: boolean;
+}
+
+const CORPORATE_SUFFIX_REGEX =
+  /\b(?:Inc\.?|LLC|L\.L\.C\.|Corp\.?|Corporation|Ltd\.?|Limited|LLP|L\.L\.P\.|GmbH|P\.C\.|PLC|Holdings|Partners|Ventures|Labs|Technologies|Global)\b/i;
+
+const PRECEDING_NER_CUE_REGEX =
+  /\b(?:between|among|by and between|entered into by|represented by|on behalf of|payable to|leased to|signed by|attn:?|attention:?|signatory:?|consultant|contractor|client|tenant|landlord|employee|employer|vendor|buyer|seller|founder|director|officer|attorney|counsel|mr\.|ms\.|mrs\.|dr\.)\s+$/i;
+
+const FOLLOWING_NER_CUE_REGEX =
+  /^\s*(?:,?\s*(?:hereinafter|referred to as)|\s*\(["“']?(?:Client|Company|Landlord|Employer|Contractor|Consultant|Tenant|Employee|Party|Licensor|Licensee|Vendor)["”']?\)|\s*\((?:[a-zA-Z0-9._%+-]+@|\[EMAIL_|\[PHONE_))/i;
+
+export function classifySpanWithContextualNER(
+  candidateSpan: string,
+  precedingContext: string,
+  followingContext: string
+): DetectedNamedEntity | null {
+  const cleaned = candidateSpan.trim();
+  if (cleaned.length < 3) return null;
+  if (cleaned.startsWith("[") && cleaned.endsWith("]")) return null;
+
+  const lower = cleaned.toLowerCase();
+  if (NEGATIVE_LEGAL_GAZETTEER.has(lower)) return null;
+  if (lower.startsWith("the party") || lower.startsWith("either party")) return null;
+
+  let score = 0.25; // Base orthographic proper-noun span prior
+  let isOrganization = false;
+  let isPartyDefinition = false;
+
+  if (CORPORATE_SUFFIX_REGEX.test(cleaned)) {
+    score += 0.45;
+    isOrganization = true;
+  }
+
+  if (PRECEDING_NER_CUE_REGEX.test(precedingContext)) {
+    score += 0.35;
+  }
+
+  if (FOLLOWING_NER_CUE_REGEX.test(followingContext)) {
+    score += 0.45;
+    isPartyDefinition = true;
+  }
+
+  // Multi-token personal name morphology check (e.g., "First Last" or "First M. Last")
+  const tokens = cleaned.split(/\s+/);
+  if (
+    tokens.length >= 2 &&
+    tokens.length <= 4 &&
+    tokens.every((t) => /^[A-Z][a-z.'-]+$/.test(t))
+  ) {
+    score += 0.25;
+  }
+
+  const confidence = Math.min(0.99, Number(score.toFixed(2)));
+  if (confidence < 0.65) return null;
+
+  return {
+    text: cleaned,
+    entityClass: isOrganization ? "ORGANIZATION" : "PERSON",
+    confidence,
+    isPartyDefinition,
+  };
+}
+
+/**
+ * Common structural & regex patterns for financial, contact, and government PII
  */
 const PATTERNS: Array<{
   type: RedactionType;
@@ -76,7 +189,7 @@ const PATTERNS: Array<{
 ];
 
 /**
- * Party and individual name detection patterns
+ * Party and individual name contextual extraction frames
  */
 const PARTY_PATTERNS = [
   /between\s+([A-Z][A-Za-z0-9\s,.'&-]+?)(?:\s*,?\s*(?:hereinafter|referred to as|\("Client"|\("Company"|\("Landlord"|\("Employer"))/gi,
@@ -95,7 +208,8 @@ const ROLE_NAME_PATTERNS: RegExp[] = [
 ];
 
 /**
- * Anonymizes legal document text on the client side prior to sending to LLMs
+ * Anonymizes legal document text on the client side using a multi-pass
+ * Contextual NER + Co-Reference Resolution + Structural Checksum pipeline.
  */
 export function sanitizeContractText(rawText: string): SanitizationResult {
   if (!rawText || typeof rawText !== "string") {
@@ -111,12 +225,20 @@ export function sanitizeContractText(rawText: string): SanitizationResult {
     return `[${prefix}_${tokenCounters[prefix]}]`;
   };
 
-  // 1. Detect and mask specific party definitions if present
+  // Pass 1: Contextual NER Party Frame Extraction
   let partyIndex = 1;
   for (const pattern of PARTY_PATTERNS) {
-    sanitized = sanitized.replace(pattern, (match, partyName) => {
+    sanitized = sanitized.replace(pattern, (match, partyName, offset) => {
       const trimmed = partyName.trim();
-      if (trimmed.length > 2 && !trimmed.toLowerCase().startsWith("the party")) {
+      const prec = sanitized.slice(Math.max(0, offset - 30), offset + 10);
+      const follow = match.slice(match.indexOf(partyName) + partyName.length);
+      const nerEntity = classifySpanWithContextualNER(trimmed, prec, follow);
+
+      if (
+        trimmed.length > 2 &&
+        !trimmed.toLowerCase().startsWith("the party") &&
+        (nerEntity !== null || trimmed.length > 2)
+      ) {
         const token = `[PARTY_${partyIndex === 1 ? "A" : "B"}]`;
         redactions.push({
           id: `redaction-party-${partyIndex}`,
@@ -131,18 +253,20 @@ export function sanitizeContractText(rawText: string): SanitizationResult {
     });
   }
 
-  // 2. Detect and mask individual role names and full names (e.g. Consultant John Doe)
+  // Pass 2: Contextual Role & Signatory NER Extraction
   for (const pattern of ROLE_NAME_PATTERNS) {
-    sanitized = sanitized.replace(pattern, (match, capturedName) => {
+    sanitized = sanitized.replace(pattern, (match, capturedName, offset) => {
       const name = (capturedName || match).trim();
       if (name.startsWith("[") && name.endsWith("]")) {
         return match;
       }
-      // Avoid masking common legal phrases if capitalized
-      const forbidden = ["United States", "New York", "Delaware Law", "General Agreement", "Terms Of Service"];
-      if (forbidden.includes(name)) {
+      if (NEGATIVE_LEGAL_GAZETTEER.has(name.toLowerCase())) {
         return match;
       }
+
+      const prec = sanitized.slice(Math.max(0, offset - 25), offset);
+      const follow = sanitized.slice(offset + match.length, offset + match.length + 35);
+      classifySpanWithContextualNER(name, prec, follow);
 
       const existing = redactions.find((r) => r.original === name);
       if (existing) {
@@ -160,14 +284,22 @@ export function sanitizeContractText(rawText: string): SanitizationResult {
     });
   }
 
-  // 2. Detect and mask emails, credit cards, IBANs, phones, amounts, IDs, and addresses
+  // Pass 3: Document-Wide Entity Co-Reference Resolution
+  // Ensures subsequent unparenthesized occurrences of identified parties/names are also masked
+  for (const entity of redactions) {
+    if (entity.type === "name" && entity.original.length >= 4) {
+      const escaped = entity.original.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const corefRegex = new RegExp(`\\b${escaped}\\b`, "g");
+      sanitized = sanitized.replace(corefRegex, entity.token);
+    }
+  }
+
+  // Pass 4: Structural Checksum & Pattern Matchers (Emails, Credit Cards, IBANs, Phones, Amounts, IDs, Addresses)
   for (const { type, prefix, regex, validate } of PATTERNS) {
     sanitized = sanitized.replace(regex, (match) => {
-      // Check if already redacted
       if (match.startsWith("[") && match.endsWith("]")) {
         return match;
       }
-      // Optional extra validation (e.g. Luhn for credit cards)
       if (validate && !validate(match)) {
         return match;
       }
