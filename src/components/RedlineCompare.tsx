@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { RedlineDiffResult } from "@/lib/types";
 import { CONTRACT_PRESETS } from "@/lib/presets";
 import {
@@ -10,6 +10,8 @@ import {
   AlertCircle,
   Sparkles,
   RotateCcw,
+  UploadCloud,
+  Loader2,
 } from "lucide-react";
 
 export default function RedlineCompare() {
@@ -18,7 +20,42 @@ export default function RedlineCompare() {
   const [docA, setDocA] = useState(freelancePreset.comparableText || "");
   const [docB, setDocB] = useState(freelancePreset.rawText || "");
   const [isLoading, setIsLoading] = useState(false);
+  const [isExtractingA, setIsExtractingA] = useState(false);
+  const [isExtractingB, setIsExtractingB] = useState(false);
   const [diffResult, setDiffResult] = useState<RedlineDiffResult | null>(null);
+
+  const fileInputARef = useRef<HTMLInputElement>(null);
+  const fileInputBRef = useRef<HTMLInputElement>(null);
+
+  const handleExtractForDoc = async (file: File, target: "A" | "B") => {
+    if (!file) return;
+    const targetSetter = target === "A" ? setDocA : setDocB;
+    const loadingSetter = target === "A" ? setIsExtractingA : setIsExtractingB;
+
+    loadingSetter(true);
+    try {
+      const extension = file.name.split(".").pop()?.toLowerCase();
+      if (extension === "txt" || extension === "md") {
+        const text = await file.text();
+        targetSetter(text);
+      } else {
+        const formData = new FormData();
+        formData.append("file", file);
+        const res = await fetch("/api/extract", { method: "POST", body: formData });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          targetSetter(data.text);
+        } else {
+          alert(data.error || "Failed to extract text from document.");
+        }
+      }
+    } catch (err) {
+      console.error("Extraction error:", err);
+      alert("Error reading file.");
+    } finally {
+      loadingSetter(false);
+    }
+  };
 
   const handleLoadPreset = () => {
     setDocA(freelancePreset.comparableText || "");
@@ -91,16 +128,42 @@ export default function RedlineCompare() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Doc A */}
             <div>
-              <label className="block text-xs font-semibold text-gray-300 mb-1.5 flex items-center justify-between">
-                <span>Version A: Standard / Equitable Baseline</span>
-                <span className="text-[10px] text-gray-500 font-mono">
-                  {docA.length} chars
-                </span>
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-semibold text-gray-300">
+                  Version A: Standard / Equitable Baseline
+                </label>
+                <div className="flex items-center space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => fileInputARef.current?.click()}
+                    disabled={isExtractingA}
+                    className="inline-flex items-center space-x-1 text-[11px] text-indigo-400 hover:text-indigo-300 bg-indigo-950/40 hover:bg-indigo-950/80 border border-indigo-800/60 px-2 py-0.5 rounded transition-colors"
+                  >
+                    {isExtractingA ? (
+                      <Loader2 className="w-3 h-3 animate-spin text-indigo-400" />
+                    ) : (
+                      <UploadCloud className="w-3 h-3" />
+                    )}
+                    <span>{isExtractingA ? "Extracting..." : "Upload File"}</span>
+                  </button>
+                  <input
+                    ref={fileInputARef}
+                    type="file"
+                    accept=".pdf,.docx,.txt,.md"
+                    className="hidden"
+                    onChange={(e) => {
+                      if (e.target.files?.[0]) handleExtractForDoc(e.target.files[0], "A");
+                    }}
+                  />
+                  <span className="text-[10px] text-gray-500 font-mono">
+                    {docA.length} chars
+                  </span>
+                </div>
+              </div>
               <textarea
                 value={docA}
                 onChange={(e) => setDocA(e.target.value)}
-                placeholder="Paste original contract or your standard baseline terms..."
+                placeholder="Paste baseline contract or upload PDF / Word DOCX..."
                 rows={9}
                 className="w-full bg-gray-950 border border-gray-800 rounded-lg p-3 text-xs font-mono text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               />
@@ -108,16 +171,42 @@ export default function RedlineCompare() {
 
             {/* Doc B */}
             <div>
-              <label className="block text-xs font-semibold text-gray-300 mb-1.5 flex items-center justify-between">
-                <span>Version B: Counterparty Proposed Redline</span>
-                <span className="text-[10px] text-gray-500 font-mono">
-                  {docB.length} chars
-                </span>
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-semibold text-gray-300">
+                  Version B: Counterparty Proposed Redline
+                </label>
+                <div className="flex items-center space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => fileInputBRef.current?.click()}
+                    disabled={isExtractingB}
+                    className="inline-flex items-center space-x-1 text-[11px] text-indigo-400 hover:text-indigo-300 bg-indigo-950/40 hover:bg-indigo-950/80 border border-indigo-800/60 px-2 py-0.5 rounded transition-colors"
+                  >
+                    {isExtractingB ? (
+                      <Loader2 className="w-3 h-3 animate-spin text-indigo-400" />
+                    ) : (
+                      <UploadCloud className="w-3 h-3" />
+                    )}
+                    <span>{isExtractingB ? "Extracting..." : "Upload File"}</span>
+                  </button>
+                  <input
+                    ref={fileInputBRef}
+                    type="file"
+                    accept=".pdf,.docx,.txt,.md"
+                    className="hidden"
+                    onChange={(e) => {
+                      if (e.target.files?.[0]) handleExtractForDoc(e.target.files[0], "B");
+                    }}
+                  />
+                  <span className="text-[10px] text-gray-500 font-mono">
+                    {docB.length} chars
+                  </span>
+                </div>
+              </div>
               <textarea
                 value={docB}
                 onChange={(e) => setDocB(e.target.value)}
-                placeholder="Paste client or vendor proposed draft with modified terms..."
+                placeholder="Paste counterparty draft or upload modified PDF / Word DOCX..."
                 rows={9}
                 className="w-full bg-gray-950 border border-gray-800 rounded-lg p-3 text-xs font-mono text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               />

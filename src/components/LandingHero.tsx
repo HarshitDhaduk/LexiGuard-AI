@@ -50,243 +50,152 @@ export default function LandingHero({
           {/* Quick CTA Buttons */}
           <div className="pt-3 flex flex-wrap items-center gap-3">
             <button
-              onClick={() => onSelectPresetAndAudit("freelance-predatory-msa")}
-              className="px-5 py-3 rounded-xl text-xs sm:text-sm font-bold bg-blue-600 hover:bg-blue-500 text-white flex items-center space-x-2 shadow-lg shadow-blue-600/25 transition-all"
+              onClick={onScrollToInput}
+              className="px-6 py-3.5 rounded-xl text-xs sm:text-sm font-bold bg-blue-600 hover:bg-blue-500 text-white flex items-center space-x-2.5 shadow-lg shadow-blue-600/30 transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
-              <span>Explore 1-Click Interactive Demo</span>
+              <span>Upload Your Contract (PDF / DOCX / Text)</span>
               <ArrowRight className="w-4 h-4" />
             </button>
 
             <button
-              onClick={onScrollToInput}
-              className="px-5 py-3 rounded-xl text-xs sm:text-sm font-semibold bg-gray-800/80 hover:bg-gray-700/90 text-gray-200 border border-gray-700 flex items-center space-x-2 transition-all"
+              onClick={() => onSelectPresetAndAudit("freelance-predatory-msa")}
+              className="px-5 py-3.5 rounded-xl text-xs sm:text-sm font-semibold bg-gray-800/90 hover:bg-gray-700 text-gray-200 border border-gray-700 flex items-center space-x-2 transition-all hover:border-gray-600"
             >
-              <span>Paste Custom Contract</span>
+              <Sparkles className="w-4 h-4 text-amber-400" />
+              <span>Try 1-Click Interactive Demo</span>
             </button>
           </div>
 
-          {/* Security & Non-Advisory Reassurance Badges */}
-          <div className="pt-2 flex flex-wrap items-center gap-4 text-xs text-gray-400">
-            <span className="flex items-center space-x-1.5 text-cyan-400">
+          {/* Security & File Reassurance Badges */}
+          <div className="pt-3 flex flex-wrap items-center gap-4 text-xs text-gray-400">
+            <span className="flex items-center space-x-1.5 text-cyan-400 font-medium">
               <ShieldCheck className="w-4 h-4" />
-              <span>Client-Side PII Shield (Zero Unmasked Data to LLMs)</span>
+              <span>In-Browser PII Masking (Zero Unmasked Data to LLMs)</span>
             </span>
-            <span className="text-gray-600">•</span>
-            <span className="flex items-center space-x-1.5 text-amber-400">
+            <span className="text-gray-600 hidden sm:inline">•</span>
+            <span className="flex items-center space-x-1.5 text-blue-400 font-medium">
               <CheckCircle className="w-4 h-4" />
-              <span>Strict Educational &amp; Navigational Boundary</span>
+              <span>Supports PDF, Word DOCX &amp; TXT</span>
+            </span>
+            <span className="text-gray-600 hidden sm:inline">•</span>
+            <span className="flex items-center space-x-1.5 text-amber-400 font-medium">
+              <CheckCircle className="w-4 h-4" />
+              <span>Educational &amp; Negotiation Guide</span>
             </span>
           </div>
         </div>
       </section>
 
-      {/* 3-Step Guided Journey */}
-      <section aria-label="3-Step Guided Workflow" className="space-y-4">
-        <div className="text-center max-w-xl mx-auto space-y-1">
-          <h2 className="text-xs font-bold uppercase tracking-widest text-blue-400">
-            How It Works
-          </h2>
-          <h3 className="text-xl font-bold text-white">
-            Your 3-Step Legal Navigation Workflow
-          </h3>
-          <p className="text-xs text-gray-400">
-            Intuitive, safe, and transparent from ingestion to negotiation.
+      {/* 4 Architectural Capabilities */}
+      <section aria-label="Core Capabilities" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-gray-900/80 border border-gray-800 rounded-2xl p-4 space-y-2 hover:border-blue-700/60 transition-colors">
+          <div className="w-8 h-8 rounded-lg bg-blue-950/80 border border-blue-800/60 flex items-center justify-center text-blue-400">
+            <FileEdit className="w-4 h-4" />
+          </div>
+          <h3 className="text-sm font-bold text-white">Universal File Ingestion</h3>
+          <p className="text-xs text-gray-400 leading-relaxed">
+            Drag-and-drop your actual PDF, DOCX, or Markdown contracts. High-speed parser extracts raw text with zero bloat.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Step 1 */}
-          <div className="bg-gray-900/80 border border-gray-800 rounded-2xl p-5 space-y-3 relative hover:border-blue-800/60 transition-colors">
-            <div className="w-10 h-10 rounded-xl bg-blue-950/80 border border-blue-800/60 flex items-center justify-center text-blue-400 font-bold text-sm">
-              01
-            </div>
-            <h4 className="text-sm font-bold text-white flex items-center space-x-2">
-              <Shield className="w-4 h-4 text-cyan-400" />
-              <span>Ingest &amp; Anonymize</span>
-            </h4>
-            <p className="text-xs text-gray-400 leading-relaxed">
-              Paste your agreement or pick a real-world sample. Our <strong>Client-Side Privacy Vault</strong> automatically masks names, compensation, and contact info in your browser before analysis.
-            </p>
+        <div className="bg-gray-900/80 border border-gray-800 rounded-2xl p-4 space-y-2 hover:border-cyan-700/60 transition-colors">
+          <div className="w-8 h-8 rounded-lg bg-cyan-950/80 border border-cyan-800/60 flex items-center justify-center text-cyan-400">
+            <Shield className="w-4 h-4" />
           </div>
+          <h3 className="text-sm font-bold text-white">Client-Side Privacy Vault</h3>
+          <p className="text-xs text-gray-400 leading-relaxed">
+            Names, compensation rates, emails, and phone numbers are automatically redacted locally in your browser before dispatch.
+          </p>
+        </div>
 
-          {/* Step 2 */}
-          <div className="bg-gray-900/80 border border-gray-800 rounded-2xl p-5 space-y-3 relative hover:border-blue-800/60 transition-colors">
-            <div className="w-10 h-10 rounded-xl bg-indigo-950/80 border border-indigo-800/60 flex items-center justify-center text-indigo-400 font-bold text-sm">
-              02
-            </div>
-            <h4 className="text-sm font-bold text-white flex items-center space-x-2">
-              <Search className="w-4 h-4 text-indigo-400" />
-              <span>Risk Audit &amp; Omission Radar</span>
-            </h4>
-            <p className="text-xs text-gray-400 leading-relaxed">
-              <strong>Gemini 2.5 Flash</strong> breaks down clauses, rates risks (0–100), translates legalese into 8th-grade English, and uncovers <strong>crucial protective clauses the drafter omitted</strong>.
-            </p>
+        <div className="bg-gray-900/80 border border-gray-800 rounded-2xl p-4 space-y-2 hover:border-indigo-700/60 transition-colors">
+          <div className="w-8 h-8 rounded-lg bg-indigo-950/80 border border-indigo-800/60 flex items-center justify-center text-indigo-400">
+            <Search className="w-4 h-4" />
           </div>
+          <h3 className="text-sm font-bold text-white">Risk &amp; Omission Radar</h3>
+          <p className="text-xs text-gray-400 leading-relaxed">
+            Gemini 2.5 Flash scores risk (0–100), clarifies legalese to 8th-grade English, and uncovers unwritten traps.
+          </p>
+        </div>
 
-          {/* Step 3 */}
-          <div className="bg-gray-900/80 border border-gray-800 rounded-2xl p-5 space-y-3 relative hover:border-blue-800/60 transition-colors">
-            <div className="w-10 h-10 rounded-xl bg-purple-950/80 border border-purple-800/60 flex items-center justify-center text-purple-400 font-bold text-sm">
-              03
-            </div>
-            <h4 className="text-sm font-bold text-white flex items-center space-x-2">
-              <FileEdit className="w-4 h-4 text-purple-400" />
-              <span>Simulate &amp; Negotiate</span>
-            </h4>
-            <p className="text-xs text-gray-400 leading-relaxed">
-              Ask grounded &ldquo;What-If&rdquo; questions with section citations. Draft market-standard replacement clauses with polite email pitches, and export a 1-page Lawyer Briefing Dossier.
-            </p>
+        <div className="bg-gray-900/80 border border-gray-800 rounded-2xl p-4 space-y-2 hover:border-purple-700/60 transition-colors">
+          <div className="w-8 h-8 rounded-lg bg-purple-950/80 border border-purple-800/60 flex items-center justify-center text-purple-400">
+            <Sparkles className="w-4 h-4" />
           </div>
+          <h3 className="text-sm font-bold text-white">Negotiation Studio</h3>
+          <p className="text-xs text-gray-400 leading-relaxed">
+            Generate balanced counter-clauses with respectful email pitches, and export a 1-page Lawyer Briefing Dossier.
+          </p>
         </div>
       </section>
 
-      {/* Select Persona / Test Samples */}
-      <section aria-label="Interactive Demo Persona Cards" className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+      {/* Quick Demo Contract Launchers */}
+      <section aria-label="Demo Samples" className="bg-gray-900/50 border border-gray-800/80 rounded-2xl p-4 sm:p-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
           <div>
-            <h3 className="text-lg font-bold text-white">
-              Choose Your Vertical or Contract Type
-            </h3>
-            <p className="text-xs text-gray-400">
-              Click any persona card below to instantly load and audit a real-world contract fixture:
-            </p>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-blue-400">No contract on hand?</span>
+            <h3 className="text-sm font-bold text-white">Explore real-world predatory contract samples:</h3>
           </div>
-          <span className="text-[11px] font-mono text-blue-400 bg-blue-950/60 border border-blue-800/60 px-2.5 py-1 rounded-full self-start sm:self-auto">
-            1-Click Live Demonstration
-          </span>
+          <span className="text-[11px] text-gray-400">1-click automated audit</span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Card 1: Freelancer */}
-          <div
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <button
+            type="button"
             onClick={() => onSelectPresetAndAudit("freelance-predatory-msa")}
-            className="group cursor-pointer bg-gray-900 border border-gray-800 hover:border-rose-700/80 rounded-2xl p-5 space-y-3 transition-all hover:shadow-xl hover:shadow-rose-950/20"
+            className="flex items-center justify-between p-3 rounded-xl bg-gray-950 border border-gray-800 hover:border-rose-700/80 text-left transition-all group"
           >
-            <div className="flex items-center justify-between">
-              <div className="p-2 bg-rose-950/60 text-rose-400 border border-rose-800/60 rounded-xl group-hover:scale-105 transition-transform">
-                <Briefcase className="w-5 h-5" />
+            <div className="flex items-center space-x-2.5">
+              <div className="p-1.5 rounded-lg bg-rose-950/60 border border-rose-800/60 text-rose-400">
+                <Briefcase className="w-4 h-4" />
               </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-950 text-rose-300 border border-rose-800">
-                Risk: 78/100 (High)
-              </span>
+              <div>
+                <div className="text-xs font-bold text-white group-hover:text-rose-300">Freelance MSA</div>
+                <div className="text-[10px] text-gray-400">Uncapped liability, Net-90</div>
+              </div>
             </div>
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-950 text-rose-300 border border-rose-800">
+              Risk 78
+            </span>
+          </button>
 
-            <div>
-              <h4 className="text-sm font-bold text-white group-hover:text-rose-300 transition-colors">
-                Freelancer / Independent Contractor
-              </h4>
-              <p className="text-xs text-gray-400 mt-1">
-                Predatory Client Master Services Agreement (MSA)
-              </p>
-            </div>
-
-            <ul className="text-xs text-gray-400 space-y-1 pt-1 border-t border-gray-800/80">
-              <li className="flex items-center space-x-1.5">
-                <span className="text-rose-400 font-bold">•</span>
-                <span>Uncapped unilateral indemnity</span>
-              </li>
-              <li className="flex items-center space-x-1.5">
-                <span className="text-rose-400 font-bold">•</span>
-                <span>Universal IP lockup of personal tools</span>
-              </li>
-              <li className="flex items-center space-x-1.5">
-                <span className="text-rose-400 font-bold">•</span>
-                <span>Net-90 payment with 0% late interest</span>
-              </li>
-            </ul>
-
-            <div className="pt-2 text-xs font-semibold text-blue-400 flex items-center space-x-1 group-hover:translate-x-1 transition-transform">
-              <span>Test This Contract</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </div>
-          </div>
-
-          {/* Card 2: Tenant */}
-          <div
+          <button
+            type="button"
             onClick={() => onSelectPresetAndAudit("residential-lease-harsh")}
-            className="group cursor-pointer bg-gray-900 border border-gray-800 hover:border-amber-700/80 rounded-2xl p-5 space-y-3 transition-all hover:shadow-xl hover:shadow-amber-950/20"
+            className="flex items-center justify-between p-3 rounded-xl bg-gray-950 border border-gray-800 hover:border-amber-700/80 text-left transition-all group"
           >
-            <div className="flex items-center justify-between">
-              <div className="p-2 bg-amber-950/60 text-amber-400 border border-amber-800/60 rounded-xl group-hover:scale-105 transition-transform">
-                <Home className="w-5 h-5" />
+            <div className="flex items-center space-x-2.5">
+              <div className="p-1.5 rounded-lg bg-amber-950/60 border border-amber-800/60 text-amber-400">
+                <Home className="w-4 h-4" />
               </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800">
-                Risk: 74/100 (High)
-              </span>
+              <div>
+                <div className="text-xs font-bold text-white group-hover:text-amber-300">Residential Lease</div>
+                <div className="text-[10px] text-gray-400">No notice entry, deposit trap</div>
+              </div>
             </div>
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800">
+              Risk 74
+            </span>
+          </button>
 
-            <div>
-              <h4 className="text-sm font-bold text-white group-hover:text-amber-300 transition-colors">
-                Tenant / Apartment Renter
-              </h4>
-              <p className="text-xs text-gray-400 mt-1">
-                Aggressive Residential Lease Agreement
-              </p>
-            </div>
-
-            <ul className="text-xs text-gray-400 space-y-1 pt-1 border-t border-gray-800/80">
-              <li className="flex items-center space-x-1.5">
-                <span className="text-amber-400 font-bold">•</span>
-                <span>Zero-advance-notice landlord entry</span>
-              </li>
-              <li className="flex items-center space-x-1.5">
-                <span className="text-amber-400 font-bold">•</span>
-                <span>Automatic security deposit forfeiture</span>
-              </li>
-              <li className="flex items-center space-x-1.5">
-                <span className="text-amber-400 font-bold">•</span>
-                <span>Shifts repair costs under $1k to tenant</span>
-              </li>
-            </ul>
-
-            <div className="pt-2 text-xs font-semibold text-blue-400 flex items-center space-x-1 group-hover:translate-x-1 transition-transform">
-              <span>Test This Lease</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </div>
-          </div>
-
-          {/* Card 3: SaaS Terms */}
-          <div
+          <button
+            type="button"
             onClick={() => onSelectPresetAndAudit("saas-terms-invasive")}
-            className="group cursor-pointer bg-gray-900 border border-gray-800 hover:border-yellow-700/80 rounded-2xl p-5 space-y-3 transition-all hover:shadow-xl hover:shadow-yellow-950/20"
+            className="flex items-center justify-between p-3 rounded-xl bg-gray-950 border border-gray-800 hover:border-yellow-700/80 text-left transition-all group"
           >
-            <div className="flex items-center justify-between">
-              <div className="p-2 bg-yellow-950/60 text-yellow-400 border border-yellow-800/60 rounded-xl group-hover:scale-105 transition-transform">
-                <Cloud className="w-5 h-5" />
+            <div className="flex items-center space-x-2.5">
+              <div className="p-1.5 rounded-lg bg-yellow-950/60 border border-yellow-800/60 text-yellow-400">
+                <Cloud className="w-4 h-4" />
               </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-yellow-950 text-yellow-300 border border-yellow-800">
-                Risk: 64/100 (Med)
-              </span>
+              <div>
+                <div className="text-xs font-bold text-white group-hover:text-yellow-300">SaaS Terms of Service</div>
+                <div className="text-[10px] text-gray-400">Perpetual IP training rights</div>
+              </div>
             </div>
-
-            <div>
-              <h4 className="text-sm font-bold text-white group-hover:text-yellow-300 transition-colors">
-                Digital Consumer / Small Business
-              </h4>
-              <p className="text-xs text-gray-400 mt-1">
-                Invasive AI Suite Terms of Service
-              </p>
-            </div>
-
-            <ul className="text-xs text-gray-400 space-y-1 pt-1 border-t border-gray-800/80">
-              <li className="flex items-center space-x-1.5">
-                <span className="text-yellow-400 font-bold">•</span>
-                <span>Perpetual AI model training on user IP</span>
-              </li>
-              <li className="flex items-center space-x-1.5">
-                <span className="text-yellow-400 font-bold">•</span>
-                <span>Unilateral price increases (3-day notice)</span>
-              </li>
-              <li className="flex items-center space-x-1.5">
-                <span className="text-yellow-400 font-bold">•</span>
-                <span>Class action waiver &amp; fee shifting</span>
-              </li>
-            </ul>
-
-            <div className="pt-2 text-xs font-semibold text-blue-400 flex items-center space-x-1 group-hover:translate-x-1 transition-transform">
-              <span>Test These Terms</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </div>
-          </div>
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-yellow-950 text-yellow-300 border border-yellow-800">
+              Risk 64
+            </span>
+          </button>
         </div>
       </section>
     </div>

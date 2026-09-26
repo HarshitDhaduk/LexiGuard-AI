@@ -12,6 +12,7 @@ import RiskHeatmap from "@/components/RiskHeatmap";
 import GroundedChat from "@/components/GroundedChat";
 import TabLoadingSkeleton from "@/components/TabLoadingSkeleton";
 import OnboardingModal from "@/components/OnboardingModal";
+import AnalysisStepper from "@/components/AnalysisStepper";
 import { CONTRACT_PRESETS } from "@/lib/presets";
 import { useAccessibilityState } from "@/hooks/useAccessibilityState";
 import { useContractAudit } from "@/hooks/useContractAudit";
@@ -113,8 +114,11 @@ export default function Home() {
     setRawText,
     selectedPresetId,
     setSelectedPresetId,
+    customDocumentTitle,
+    setCustomDocumentTitle,
     analysis,
     isLoading,
+    sanitizationInfo,
     activeTab,
     setActiveTab,
     selectedClauseForNegotiation,
@@ -126,6 +130,8 @@ export default function Home() {
     setShowOnboarding,
     handleAnalyze,
     handleSelectPresetAndAudit,
+    handleFileExtracted,
+    handleLoadFromVault,
     handleScrollToInput,
     handleSelectClauseForNegotiation,
     handleResetToLanding,
@@ -191,6 +197,17 @@ export default function Home() {
                 onScrollToInput={handleScrollToInput}
               />
 
+              {/* In-Flight Multi-Stage Pipeline Progress Stepper */}
+              {isLoading && (
+                <div className="py-2 animate-fadeIn">
+                  <AnalysisStepper
+                    isLoading={isLoading}
+                    documentTitle={customDocumentTitle || "Legal Contract"}
+                    piiRedactionsCount={sanitizationInfo?.redactions.length || 0}
+                  />
+                </div>
+              )}
+
               {/* Ingestion & PII Redaction Input Area */}
               <DocumentInput
                 rawText={rawText}
@@ -199,6 +216,10 @@ export default function Home() {
                 isLoading={isLoading}
                 selectedPresetId={selectedPresetId}
                 setSelectedPresetId={setSelectedPresetId}
+                customDocumentTitle={customDocumentTitle}
+                setCustomDocumentTitle={setCustomDocumentTitle}
+                onFileExtracted={handleFileExtracted}
+                onLoadFromVault={handleLoadFromVault}
               />
             </>
           )}

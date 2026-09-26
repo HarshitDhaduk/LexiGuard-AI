@@ -9,12 +9,15 @@ import {
   AnalyzedClause,
   SanitizationResult,
 } from "@/lib/types";
+import { saveContractToVault, StoredContractRecord } from "@/components/ContractHistoryVault";
 
 export interface UseContractAuditReturn {
   rawText: string;
   setRawText: (val: string) => void;
   selectedPresetId: string | null;
   setSelectedPresetId: (val: string | null) => void;
+  customDocumentTitle: string;
+  setCustomDocumentTitle: (val: string) => void;
   analysis: ContractAnalysisResult | null;
   setAnalysis: (val: ContractAnalysisResult | null) => void;
   isLoading: boolean;
@@ -34,6 +37,8 @@ export interface UseContractAuditReturn {
     sanitizationResult: SanitizationResult
   ) => Promise<void>;
   handleSelectPresetAndAudit: (presetId: string) => void;
+  handleFileExtracted: (text: string, filename: string) => void;
+  handleLoadFromVault: (record: StoredContractRecord) => void;
   handleScrollToInput: () => void;
   handleSelectClauseForNegotiation: (clause: AnalyzedClause) => void;
   handleResetToLanding: () => void;
@@ -46,6 +51,7 @@ export function useContractAudit(
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(
     CONTRACT_PRESETS[0].id
   );
+  const [customDocumentTitle, setCustomDocumentTitle] = useState("");
   const [analysis, setAnalysis] = useState<ContractAnalysisResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("audit");
@@ -74,6 +80,11 @@ export function useContractAudit(
         setAnalysis(cached);
         setActiveTab("audit");
         setIsLoading(false);
+        saveContractToVault(
+          customDocumentTitle || cached.documentTitle,
+          payloadText,
+          cached
+        );
         if (onAnnounce) {
           onAnnounce(`Instant analysis retrieved from cache for ${cached.documentTitle}`);
         }
@@ -93,8 +104,13 @@ export function useContractAudit(
         });
         const json = await res.json();
         if (json.success && json.data) {
-          // Store in client-side dual-tier cache
+          // Store in client-side dual-tier cache & local contract vault
           clientCache.set(cacheKey, json.data);
+          saveContractToVault(
+            customDocumentTitle || json.data.documentTitle,
+            payloadText,
+            json.data
+          );
           setAnalysis(json.data);
           setActiveTab("audit");
           if (onAnnounce) {
@@ -115,7 +131,7 @@ export function useContractAudit(
         setIsLoading(false);
       }
     },
-    [onAnnounce]
+    [onAnnounce, customDocumentTitle]
   );
 
   const handleSelectPresetAndAudit = useCallback(
@@ -123,12 +139,44 @@ export function useContractAudit(
       const preset = CONTRACT_PRESETS.find((p) => p.id === presetId);
       if (preset) {
         setSelectedPresetId(preset.id);
+        setCustomDocumentTitle(preset.name);
         setRawText(preset.rawText);
         const res = sanitizeContractText(preset.rawText);
         handleAnalyze(res.sanitizedText, res);
       }
     },
     [handleAnalyze]
+  );
+
+  const handleFileExtracted = useCallback(
+    (text: string, filename: string) => {
+      setRawText(text);
+      setCustomDocumentTitle(filename);
+      setSelectedPresetId(null);
+      if (onAnnounce) {
+        onAnnounce(`Extracted document ${filename}. Ready for privacy shielding.`);
+      }
+    },
+    [onAnnounce]
+  );
+
+  const handleLoadFromVault = useCallback(
+    (record: StoredContractRecord) => {
+      setRawText(record.rawText);
+      setCustomDocumentTitle(record.title);
+      setSelectedPresetId(null);
+      setAnalysis(record.analysis);
+      setActiveTab("audit");
+      if (onAnnounce) {
+        onAnnounce(`Loaded ${record.title} from your saved contract vault.`);
+      }
+      setTimeout(() => {
+        document
+          .getElementById("analysis-workbench")
+          ?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+    },
+    [onAnnounce]
   );
 
   const handleScrollToInput = useCallback(() => {
@@ -163,6 +211,8 @@ export function useContractAudit(
     setRawText,
     selectedPresetId,
     setSelectedPresetId,
+    customDocumentTitle,
+    setCustomDocumentTitle,
     analysis,
     setAnalysis,
     isLoading,
@@ -179,6 +229,8 @@ export function useContractAudit(
     setShowOnboarding,
     handleAnalyze,
     handleSelectPresetAndAudit,
+    handleFileExtracted,
+    handleLoadFromVault,
     handleScrollToInput,
     handleSelectClauseForNegotiation,
     handleResetToLanding,

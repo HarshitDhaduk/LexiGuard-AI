@@ -7,7 +7,7 @@
 [![CI Pipeline](https://github.com/HarshitDhaduk/LexiGuard-AI/actions/workflows/ci.yml/badge.svg)](https://github.com/HarshitDhaduk/LexiGuard-AI/actions/workflows/ci.yml)
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-lexiguard--ai--phi.vercel.app-4285F4)](https://lexi-guard-ai-phi.vercel.app/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Tests: 88 Passing](https://img.shields.io/badge/Tests-88%20Passing-success)](tests/)
+[![Tests: 104 Passing](https://img.shields.io/badge/Tests-104%20Passing-success)](tests/)
 [![WCAG 2.1 AAA](https://img.shields.io/badge/Accessibility-WCAG%202.1%20AAA-brightgreen)](https://www.w3.org/WAI/WCAG21/quickref/)
 
 ---
@@ -26,11 +26,12 @@ Most people sign contracts without truly understanding what they're agreeing to.
 
 - **AI Engine**: Google Gemini 2.5 Flash (`gemini-2.5-flash`) via `@google/generative-ai`
 - **Framework**: Next.js 14 (App Router, Serverless Edge API Routes)
+- **Document Parsing**: `unpdf` (PDF text extraction) + `mammoth` (Word .docx parsing)
 - **Language**: TypeScript 5 (Strict type checking, zero `any`)
 - **Styling**: Tailwind CSS (WCAG 2.1 AAA high-contrast tokens, responsive layout)
 - **Validation**: Zod 4 (Strict runtime boundary schema validation on all endpoints)
 - **Icons**: Lucide React
-- **Testing**: Vitest (88 unit and integration tests across 13 suites)
+- **Testing**: Vitest (104 unit and integration tests across 16 suites)
 - **Hosting & CI**: Vercel (Edge deployment) + GitHub Actions (Automated CI on push)
 
 ---
@@ -42,12 +43,14 @@ flowchart TD
     subgraph Browser ["User Browser (Client)"]
         UI["React 18 Workbench UI"]
         PV["Privacy Vault (Regex/Heuristic PII Masker)"]
+        CV["Contract History Vault (localStorage)"]
         CC["Dual-Tier Cache (Memory + SessionStorage)"]
         A11Y["Accessibility Hook (Keyboard 1-5, ARIA Live)"]
     end
 
     subgraph Server ["Next.js 14 API Gateway"]
         MW["Security Middleware (Rate Limiter, CSP, CORS)"]
+        EX["/api/extract (PDF & DOCX Ingestion)"]
         ZV["Zod Runtime Schema Validation"]
     end
 
@@ -59,8 +62,11 @@ flowchart TD
         F4["/api/negotiate (Counter-Clause Drafting)"]
     end
 
-    UI --> PV
+    UI -- "PDF/DOCX Upload" --> EX
+    EX -- "Extracted Text" --> PV
+    UI -- "Pasted Text" --> PV
     PV --> CC
+    CC --> CV
     CC -- "Cache Hit (0ms)" --> UI
     CC -- "Cache Miss" --> MW
     MW --> ZV
@@ -73,14 +79,15 @@ flowchart TD
 
 ## Core Features
 
-1. **Client-Side Privacy Vault**: In-browser engine automatically redacts names, compensation, emails, phone numbers, and bank details before anything is sent over the network.
-2. **Clause Radar & Risk Heatmap**: Evaluates each clause on a 0–100 risk scale, highlights "The Trap", and explains the practical consequences.
-3. **Plain English De-Jargonizer**: Calculates Flesch-Kincaid Grade Level and Reading Ease, showing an objective clarity improvement (from post-grad legal speak down to Grade 7–8 clarity).
-4. **Omission Radar**: Flags critical terms that the drafting party intentionally left out (such as mutual cure periods, audit caps, or late payment terms).
-5. **Bilateral Redline Diff**: Compares two versions of an agreement and calculates the **Power Shift Index (-100 to +100)** to show who gained leverage.
-6. **Grounded What-If Simulator**: Real-time streaming Q&A (<250ms TTFT) strictly grounded in contract text with section-level citations.
-7. **Negotiation Studio**: Generates balanced or protective counter-clauses and a polite, ready-to-send negotiation email.
-8. **Lawyer Briefing Dossier**: Exports a 1-page structured briefing document with prioritized questions to minimize attorney consultation costs.
+1. **Universal Contract Ingestion & Vault**: Drag-and-drop PDF, Word (`.docx`), or Markdown contracts up to 10MB or paste directly. Contracts are automatically saved to your private local storage vault for 0ms re-auditing.
+2. **Client-Side Privacy Vault**: In-browser engine automatically redacts names, compensation, emails, phone numbers, and bank details before anything is sent over the network.
+3. **Clause Radar & Risk Heatmap**: Evaluates each clause on a 0–100 risk scale, highlights "The Trap", and explains the practical consequences.
+4. **Plain English De-Jargonizer**: Calculates Flesch-Kincaid Grade Level and Reading Ease, showing an objective clarity improvement (from post-grad legal speak down to Grade 7–8 clarity).
+5. **Omission Radar**: Flags critical terms that the drafting party intentionally left out (such as mutual cure periods, audit caps, or late payment terms).
+6. **Bilateral Redline Diff**: Compares two versions of an agreement (with direct PDF/DOCX upload for baseline and counterparty redline) and calculates the **Power Shift Index (-100 to +100)** to show who gained leverage.
+7. **Grounded What-If Simulator**: Real-time streaming Q&A (<250ms TTFT) strictly grounded in contract text with section-level citations.
+8. **Negotiation Studio**: Generates balanced or protective counter-clauses and a polite, ready-to-send negotiation email.
+9. **Lawyer Briefing Dossier**: Exports a 1-page structured briefing document with prioritized questions to minimize attorney consultation costs.
 
 ---
 
