@@ -68,17 +68,17 @@ function generateGroundedAnswer(
   let topicAnswer = "";
 
   if (
-    lowerQuery.includes("payment") ||
-    lowerQuery.includes("pay") ||
-    lowerQuery.includes("fee") ||
-    lowerQuery.includes("invoice") ||
-    lowerQuery.includes("net")
+    lowerQuery.includes("terminat") ||
+    lowerQuery.includes("quit") ||
+    lowerQuery.includes("cancel") ||
+    lowerQuery.includes("end") ||
+    lowerQuery.includes("fire")
   ) {
     topicAnswer =
-      "According to Section 2, payment is Net-90 days following client approval of invoices, and no late fees or interest may accrue on overdue balances under any circumstances. You effectively act as an interest-free lender.";
+      "Under Section 7, the client has the right to terminate immediately without cause upon written email notice. In contrast, you must provide ninety (90) days advance notice via certified mail. Furthermore, you forfeit payment for work in progress if terminated early.";
     citations.push({
-      clauseTitle: "Section 2: Compensation and Payment Terms",
-      snippet: "Client shall remit payment within ninety (90) days... No interest or late fees shall accrue.",
+      clauseTitle: "Section 7: Termination and Cancellation",
+      snippet: "Client may terminate this Agreement immediately upon email notice... Contractor must provide ninety (90) days advance notice.",
     });
   } else if (
     lowerQuery.includes("indemn") ||
@@ -94,17 +94,17 @@ function generateGroundedAnswer(
       snippet: "Contractor agrees to defend, indemnify, and hold harmless Client... liability shall be strictly uncapped.",
     });
   } else if (
-    lowerQuery.includes("terminat") ||
-    lowerQuery.includes("quit") ||
-    lowerQuery.includes("cancel") ||
-    lowerQuery.includes("end") ||
-    lowerQuery.includes("fire")
+    lowerQuery.includes("payment") ||
+    lowerQuery.includes("pay") ||
+    lowerQuery.includes("fee") ||
+    lowerQuery.includes("invoice") ||
+    lowerQuery.includes("net")
   ) {
     topicAnswer =
-      "Under Section 7, the client has the right to terminate immediately without cause upon written email notice. In contrast, you must provide ninety (90) days advance notice via certified mail. Furthermore, you forfeit payment for work in progress if terminated early.";
+      "According to Section 2, payment is Net-90 days following client approval of invoices, and no late fees or interest may accrue on overdue balances under any circumstances. You effectively act as an interest-free lender.";
     citations.push({
-      clauseTitle: "Section 7: Termination and Cancellation",
-      snippet: "Client may terminate this Agreement immediately upon email notice... Contractor must provide ninety (90) days advance notice.",
+      clauseTitle: "Section 2: Compensation and Payment Terms",
+      snippet: "Client shall remit payment within ninety (90) days... No interest or late fees shall accrue.",
     });
   } else if (
     lowerQuery.includes("ip") ||
