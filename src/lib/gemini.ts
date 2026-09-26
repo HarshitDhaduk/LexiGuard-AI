@@ -197,30 +197,34 @@ function generateGroundedAnswer(
  */
 function generateHeuristicAnalysis(text: string, persona?: string): ContractAnalysisResult {
   const lower = text.toLowerCase();
+  const hasExplicitLeaseTerms =
+    lower.includes("residential lease") ||
+    lower.includes("landlord") ||
+    lower.includes("tenant") ||
+    lower.includes("security deposit");
+  const hasExplicitFreelanceTerms =
+    lower.includes("master services agreement") ||
+    lower.includes("contractor") ||
+    lower.includes("consultant") ||
+    lower.includes("freelance") ||
+    lower.includes("services agreement") ||
+    lower.includes("statement of work");
+
+  const isLease =
+    hasExplicitLeaseTerms ||
+    (persona === "tenant" && !hasExplicitFreelanceTerms);
+
   const isFreelance =
-    persona === "freelancer" ||
-    (!persona && (
-      lower.includes("contractor") ||
-      lower.includes("consultant") ||
-      lower.includes("freelance") ||
-      lower.includes("services agreement") ||
+    !isLease &&
+    (hasExplicitFreelanceTerms ||
+      persona === "freelancer" ||
       lower.includes("software architecture") ||
       lower.includes("hourly") ||
       lower.includes("consulting") ||
       lower.includes("msa") ||
-      lower.includes("statement of work") ||
-      lower.includes("client")
-    ));
-  const isLease =
-    persona === "tenant" ||
-    lower.includes("tenant") ||
-    lower.includes("lease") ||
-    lower.includes("landlord") ||
-    lower.includes("apartment") ||
-    lower.includes("premises") ||
-    lower.includes("security deposit");
+      lower.includes("client"));
 
-  if (isFreelance && !isLease) {
+  if (isFreelance) {
     return {
       documentTitle: "Freelance Services Agreement (Audited)",
       contractType: "Freelance MSA",
@@ -238,7 +242,7 @@ function generateHeuristicAnalysis(text: string, persona?: string): ContractAnal
           originalText:
             "Contractor agrees to defend, indemnify, and hold harmless Client... regardless of whether caused by Contractor's negligence or third-party actions. Contractor's liability under this Section shall be strictly uncapped.",
           plainEnglish:
-            "If anyone sues the client for anything related to your work—even if it was not your fault—you must pay all of their legal bills, damages, and settlements with no maximum limit.",
+            "You must pay all legal bills if someone sues the client over your work. This applies even if you did nothing wrong. There is no dollar limit on what you owe.",
           riskLevel: "Critical",
           riskScore: 95,
           theTrap:
@@ -254,7 +258,7 @@ function generateHeuristicAnalysis(text: string, persona?: string): ContractAnal
           originalText:
             "Contractor agrees that all work product... whether created on Client premises or on Contractor's personal equipment... Contractor unconditionally assigns all pre-existing tools and background IP.",
           plainEnglish:
-            "The client claims full ownership of everything you touch, including pre-existing code, tools, and libraries you built before this contract.",
+            "The client takes full ownership of all your work. They even take code and tools you built before this job started.",
           riskLevel: "Critical",
           riskScore: 90,
           theTrap:
@@ -270,7 +274,7 @@ function generateHeuristicAnalysis(text: string, persona?: string): ContractAnal
           originalText:
             "Client shall remit payment within ninety (90) days following receipt and unilateral approval of each invoice ('Net 90'). No interest or late fees shall accrue on overdue balances under any circumstances.",
           plainEnglish:
-            "You will not get paid until 3 months after the client approves your invoice, and they suffer zero penalties if they pay even later.",
+            "You must wait 90 days after invoice approval to get paid. The client pays zero late fees if they delay your check.",
           riskLevel: "High",
           riskScore: 82,
           theTrap:
@@ -286,7 +290,7 @@ function generateHeuristicAnalysis(text: string, persona?: string): ContractAnal
           originalText:
             "Contractor shall not directly or indirectly provide software consulting or design services to any entity operating in the enterprise software, generative AI, or cloud computing sectors worldwide for twenty-four (24) months.",
           plainEnglish:
-            "You are legally prohibited from working for 2 years anywhere in the enterprise AI or cloud sectors after this contract ends.",
+            "You cannot work for any other AI or cloud company for 2 full years after this job ends.",
           riskLevel: "High",
           riskScore: 85,
           theTrap:
@@ -436,7 +440,7 @@ export async function analyzeContractWithGemini(
   const textToAnalyze = validation.isValid ? validation.sanitizedText : sanitizedText;
 
   // 2. Efficiency check: Query in-memory SHA-256 LRU cache
-  const cacheKey = globalContractCache.generateKey("analyze", persona || "auto", textToAnalyze);
+  const cacheKey = globalContractCache.generateKey("analyze_v2", persona || "auto", textToAnalyze);
   const cached = globalContractCache.get<ContractAnalysisResult>(cacheKey);
   if (cached) {
     return {
@@ -554,7 +558,7 @@ ${textToAnalyze}`;
     return finalResult;
   } catch (err) {
     console.error("Gemini API error, falling back to heuristic engine:", err);
-    const fallback = generateHeuristicAnalysis(textToAnalyze);
+    const fallback = generateHeuristicAnalysis(textToAnalyze, persona);
     fallback.telemetry = {
       cached: false,
       executionTimeMs: Date.now() - startTime,

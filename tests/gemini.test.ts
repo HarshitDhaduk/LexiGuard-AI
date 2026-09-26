@@ -20,6 +20,23 @@ describe("Gemini Orchestration & Heuristic Fallback", () => {
     expect(firstClause.plainEnglish).toBeTruthy();
     expect(firstClause.theTrap).toBeTruthy();
     expect(firstClause.riskLevel).toBeTruthy();
+
+    // Verify Predatory Freelance MSA preset containing 'Client premises'
+    const { CONTRACT_PRESETS } = await import("../src/lib/presets");
+    const { compareDejargonization } = await import("../src/lib/readability");
+    const freelancePreset = CONTRACT_PRESETS[0];
+    const presetResult = await analyzeContractWithGemini(freelancePreset.rawText, "freelancer");
+    expect(presetResult.documentTitle).toBe("Freelance Services Agreement (Audited)");
+    expect(presetResult.contractType).toBe("Freelance MSA");
+    expect(presetResult.overallRiskScore).toBe(78);
+    expect(presetResult.clauses.length).toBe(4);
+    expect(presetResult.missingClauses[0].clauseName).toBe("Contractor Right to Cure Default");
+
+    const readability = compareDejargonization(
+      freelancePreset.rawText,
+      presetResult.clauses.map((c) => c.plainEnglish).join(" ")
+    );
+    expect(readability.clarityImprovementPercent).toBe(77);
   });
 
   it("generates a bilateral comparison result", async () => {

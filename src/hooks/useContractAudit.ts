@@ -78,7 +78,7 @@ export function useContractAudit(
       }
 
       // Check client-side dual cache first for 0ms retrieval
-      const cacheKey = clientCache.generateKey("audit", selectedPersona, payloadText.trim());
+      const cacheKey = clientCache.generateKey("audit_v2", selectedPersona, payloadText.trim());
       const cached = clientCache.get<ContractAnalysisResult>(cacheKey);
       if (cached) {
         setAnalysis(cached);

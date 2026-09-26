@@ -67,8 +67,7 @@ export function useAccessibilityState(
           announce("Switched to Legal Aid Directory & Safety Checklist");
           break;
         case "?":
-          if (onOpenTour) onOpenTour();
-          announce("Opened Guided Tour");
+          announce("Opened Keyboard Navigation Shortcuts");
           break;
       }
     };
