@@ -98,6 +98,14 @@ export default function SigningSafetyChecklist() {
     URL.revokeObjectURL(url);
   };
 
+  const handleVerifyAll = () => {
+    if (checkedIds.size === CHECKLIST_ITEMS.length) {
+      setCheckedIds(new Set(["payment-terms"]));
+    } else {
+      setCheckedIds(new Set(CHECKLIST_ITEMS.map((item) => item.id)));
+    }
+  };
+
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-gray-800 gap-4">
@@ -118,14 +126,25 @@ export default function SigningSafetyChecklist() {
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={handleExportChecklist}
-          className="px-3 py-1.5 text-xs font-semibold bg-gray-800 hover:bg-gray-700 text-gray-200 hover:text-white rounded-lg border border-gray-700 flex items-center space-x-1.5 transition-colors self-start sm:self-auto"
-        >
-          <Download className="w-3.5 h-3.5 text-blue-400" />
-          <span>Export Checklist</span>
-        </button>
+        <div className="flex items-center space-x-2 self-start sm:self-auto">
+          <button
+            type="button"
+            onClick={handleVerifyAll}
+            className="px-3 py-1.5 text-xs font-semibold bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-700/60 text-emerald-300 rounded-lg flex items-center space-x-1.5 transition-colors"
+          >
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            <span>{checkedIds.size === CHECKLIST_ITEMS.length ? "Reset Gates" : "Verify All (Safe to Sign)"}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleExportChecklist}
+            className="px-3 py-1.5 text-xs font-semibold bg-gray-800 hover:bg-gray-700 text-gray-200 hover:text-white rounded-lg border border-gray-700 flex items-center space-x-1.5 transition-colors"
+          >
+            <Download className="w-3.5 h-3.5 text-blue-400" />
+            <span>Export Checklist</span>
+          </button>
+        </div>
       </div>
 
       {/* Progress Bar */}

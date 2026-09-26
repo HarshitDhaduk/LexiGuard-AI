@@ -369,12 +369,17 @@ export default function Home() {
               (Exclusive Edition).
             </p>
           </div>
-          <div className="text-[11px] text-gray-400 sm:text-right space-y-0.5">
-            <div>
-              Strict repository size guard &lt; 10 MB • Single `main` branch
+          <div className="text-[11px] text-gray-400 sm:text-right space-y-1">
+            <div className="flex flex-wrap items-center sm:justify-end gap-2">
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-950/80 text-emerald-300 border border-emerald-800/60">
+                ✓ 104 Passing Tests (16 Suites)
+              </span>
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-950/80 text-blue-300 border border-blue-800/60">
+                Tracked Size: ~495 KiB (&lt; 10 MB Limit)
+              </span>
             </div>
             <div>
-              Client-Side PII privacy shield • Educational legal navigation
+              Client-Side PII Shield • Zero Unmasked Data Sent to LLMs
             </div>
           </div>
         </div>

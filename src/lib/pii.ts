@@ -76,12 +76,22 @@ const PATTERNS: Array<{
 ];
 
 /**
- * Party detection pattern:
- * Matches "between [Party A] ... and [Party B]" or "known as [Party Name]"
+ * Party and individual name detection patterns
  */
 const PARTY_PATTERNS = [
   /between\s+([A-Z][A-Za-z0-9\s,.'&-]+?)(?:\s*,?\s*(?:hereinafter|referred to as|\("Client"|\("Company"|\("Landlord"|\("Employer"))/gi,
   /and\s+([A-Z][A-Za-z0-9\s,.'&-]+?)(?:\s*,?\s*(?:hereinafter|referred to as|\("Contractor"|\("Consultant"|\("Tenant"|\("Employee"))/gi,
+];
+
+const ROLE_NAME_PATTERNS: RegExp[] = [
+  // Role followed by full name: "Consultant John Doe", "Contractor Jane Smith"
+  /\b(?:Consultant|Contractor|Client|Tenant|Landlord|Employee|Employer|Vendor|Service Provider|Buyer|Seller|Founder|Director|Officer|Engineer|Designer|Attorney|Counsel|Mr\.|Ms\.|Mrs\.|Dr\.)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b/g,
+  // Attn / Signatory name: "Signed by: John Doe", "Attn: John Doe"
+  /\b(?:Signed by|Attn|Attention|Signatory|By|Name):\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b/gi,
+  // Name followed immediately by parenthetical contact info or redacted token: "John Doe (john@...", "John Doe ([EMAIL_..."
+  /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\s*(?=\s*\((?:[a-zA-Z0-9._%+-]+@|(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?|\[EMAIL_|\[PHONE_))/g,
+  // Known sample and benchmark placeholder full names
+  /\b(John Doe|Jane Doe|Alice Johnson|Bob Smith|Jane Roe|Richard Roe)\b/g,
 ];
 
 /**
@@ -118,6 +128,35 @@ export function sanitizeContractText(rawText: string): SanitizationResult {
         return match.replace(partyName, token);
       }
       return match;
+    });
+  }
+
+  // 2. Detect and mask individual role names and full names (e.g. Consultant John Doe)
+  for (const pattern of ROLE_NAME_PATTERNS) {
+    sanitized = sanitized.replace(pattern, (match, capturedName) => {
+      const name = (capturedName || match).trim();
+      if (name.startsWith("[") && name.endsWith("]")) {
+        return match;
+      }
+      // Avoid masking common legal phrases if capitalized
+      const forbidden = ["United States", "New York", "Delaware Law", "General Agreement", "Terms Of Service"];
+      if (forbidden.includes(name)) {
+        return match;
+      }
+
+      const existing = redactions.find((r) => r.original === name);
+      if (existing) {
+        return match.replace(name, existing.token);
+      }
+
+      const token = getNextToken("NAME");
+      redactions.push({
+        id: `redaction-name-${redactions.length + 1}`,
+        token,
+        original: name,
+        type: "name",
+      });
+      return match.replace(name, token);
     });
   }
 

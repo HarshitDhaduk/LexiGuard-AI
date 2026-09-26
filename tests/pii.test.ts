@@ -105,4 +105,20 @@ describe("Client-Side PII Shield (sanitizeContractText)", () => {
     expect(result.sanitizedText).toContain("SECTION 14: GOVERNING LAW AND JURISDICTION");
     expect(result.sanitizedText).toContain("Delaware");
   });
+
+  it("redacts person names when preceded by role titles like Consultant John Doe", () => {
+    const sampleText =
+      "Consultant John Doe (john.doe@example.com, (555) 234-5678) agrees to provide services. Fees are $150 per hour Net 60.";
+    const result = sanitizeContractText(sampleText);
+
+    expect(result.sanitizedText).not.toContain("John Doe");
+    expect(result.sanitizedText).not.toContain("john.doe@example.com");
+    expect(result.sanitizedText).not.toContain("(555) 234-5678");
+    expect(result.sanitizedText).not.toContain("$150 per hour");
+    expect(result.sanitizedText).toMatch(/\[NAME_\d+\]/);
+    expect(result.redactions.some((r) => r.type === "name" && r.original === "John Doe")).toBe(true);
+
+    const rehydrated = rehydrateContractText(result.sanitizedText, result.redactions);
+    expect(rehydrated).toBe(sampleText);
+  });
 });
