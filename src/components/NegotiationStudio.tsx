@@ -12,15 +12,21 @@ import {
   Scale,
 } from "lucide-react";
 
+import { PersonaId, getPersonaProfile } from "@/lib/persona";
+
 interface NegotiationStudioProps {
   availableClauses: AnalyzedClause[];
   selectedClauseForEdit?: AnalyzedClause | null;
+  persona?: PersonaId;
 }
 
 export default function NegotiationStudio({
   availableClauses,
   selectedClauseForEdit,
+  persona = "freelancer",
 }: NegotiationStudioProps) {
+  const personaProfile = getPersonaProfile(persona);
+
   const [selectedClauseId, setSelectedClauseId] = useState<string>(
     selectedClauseForEdit?.id || availableClauses[0]?.id || ""
   );
@@ -44,6 +50,7 @@ export default function NegotiationStudio({
           clauseTitle: activeClause.title,
           originalSnippet: activeClause.originalText,
           stance,
+          persona,
         }),
       });
 
@@ -77,10 +84,15 @@ export default function NegotiationStudio({
       <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 shadow-xl space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-gray-800 gap-2">
           <div>
-            <h2 className="text-base font-semibold text-white flex items-center space-x-2">
-              <FileEdit className="w-5 h-5 text-purple-400" />
-              <span>Negotiation Studio &amp; Counter-Clause Drafter</span>
-            </h2>
+            <div className="flex items-center space-x-2">
+              <h2 className="text-base font-semibold text-white flex items-center space-x-2">
+                <FileEdit className="w-5 h-5 text-purple-400" />
+                <span>Negotiation Studio &amp; Counter-Clause Drafter</span>
+              </h2>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-950/80 text-purple-300 border border-purple-800/60">
+                Persona: {personaProfile.badge}
+              </span>
+            </div>
             <p className="text-xs text-gray-400 mt-0.5">
               Transform one-sided, high-risk clauses into equitable market-standard language with tailored diplomatic emails.
             </p>

@@ -47,13 +47,14 @@ export async function POST(req: NextRequest) {
         { status: 400, headers }
       );
     }
-    const { clauseTitle, originalSnippet, stance } = parseResult.data;
+    const { clauseTitle, originalSnippet, stance, persona } = parseResult.data;
 
     const valSnippet = sanitizePromptInput(originalSnippet, 10000);
     const proposal = await generateCounterClauseWithGemini(
       clauseTitle,
       valSnippet.sanitizedText || originalSnippet,
-      stance === "Protective" ? "Protective" : "Balanced"
+      stance === "Protective" ? "Protective" : "Balanced",
+      persona
     );
 
     return NextResponse.json({ success: true, data: proposal }, { headers });

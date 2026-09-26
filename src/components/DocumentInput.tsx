@@ -23,6 +23,8 @@ import { sanitizeContractText } from "@/lib/pii";
 import { SanitizationResult } from "@/lib/types";
 import FileDropzone from "./FileDropzone";
 import ContractHistoryVault, { StoredContractRecord } from "./ContractHistoryVault";
+import PersonaSelector from "./PersonaSelector";
+import { PersonaId, PERSONA_PROFILES } from "@/lib/persona";
 
 interface DocumentInputProps {
   rawText: string;
@@ -31,6 +33,8 @@ interface DocumentInputProps {
   isLoading: boolean;
   selectedPresetId: string | null;
   setSelectedPresetId: (id: string | null) => void;
+  selectedPersona?: PersonaId;
+  setSelectedPersona?: (persona: PersonaId) => void;
   customDocumentTitle?: string;
   setCustomDocumentTitle?: (title: string) => void;
   onFileExtracted?: (text: string, filename: string) => void;
@@ -44,6 +48,8 @@ export default function DocumentInput({
   isLoading,
   selectedPresetId,
   setSelectedPresetId,
+  selectedPersona = "freelancer",
+  setSelectedPersona,
   customDocumentTitle = "",
   setCustomDocumentTitle,
   onFileExtracted,
@@ -132,11 +138,33 @@ export default function DocumentInput({
     }
   };
 
+  const handlePersonaSelect = (personaId: PersonaId) => {
+    if (setSelectedPersona) {
+      setSelectedPersona(personaId);
+    }
+    if (activeInputMode === "preset") {
+      const matchingPresetId = PERSONA_PROFILES[personaId].matchingPresetId;
+      const matchingPreset = CONTRACT_PRESETS.find((p) => p.id === matchingPresetId);
+      if (matchingPreset) {
+        setSelectedPresetId(matchingPreset.id);
+        setRawText(matchingPreset.rawText);
+        if (setCustomDocumentTitle) setCustomDocumentTitle(matchingPreset.name);
+      }
+    }
+  };
+
   return (
-    <div
-      id="document-input-section"
-      className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl space-y-6"
-    >
+    <div className="space-y-6">
+      {/* Signer Persona & Context Selector */}
+      <PersonaSelector
+        selectedPersona={selectedPersona}
+        onSelectPersona={handlePersonaSelect}
+      />
+
+      <div
+        id="document-input-section"
+        className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl space-y-6"
+      >
       {/* Header & Ingestion Mode Switcher */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-gray-800 gap-3">
         <div>
@@ -509,6 +537,7 @@ export default function DocumentInput({
           )}
         </button>
       </div>
+    </div>
     </div>
   );
 }

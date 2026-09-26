@@ -12,29 +12,32 @@ import {
   RotateCcw,
 } from "lucide-react";
 
+import { PersonaId, getPersonaProfile } from "@/lib/persona";
+
 interface GroundedChatProps {
   contractText: string;
+  persona?: PersonaId;
 }
 
-export default function GroundedChat({ contractText }: GroundedChatProps) {
+export default function GroundedChat({
+  contractText,
+  persona = "freelancer",
+}: GroundedChatProps) {
+  const personaProfile = getPersonaProfile(persona);
+
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: "msg-welcome",
       role: "assistant",
       content:
-        "Hello! I am your Grounded Legal Scenario Copilot. I analyze the contract you ingested and answer your 'What-If' scenarios strictly based on the text. Every answer includes verifiable clause citations.\n\nAsk any question or click one of the quick scenario chips below.",
+        `Hello! I am your Grounded Legal Scenario Copilot calibrated for ${personaProfile.name}.\n\nI analyze your ingested contract and answer 'What-If' scenarios strictly based on the text. Every answer includes verifiable clause citations.\n\nAsk any question or click one of your persona-specific scenario chips below.`,
       timestamp: Date.now(),
     },
   ]);
   const [inputQuery, setInputQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const scenarioChips = [
-    "What if the client cancels this contract without cause after 30 days?",
-    "What happens if the client delays paying my invoice past Net 90?",
-    "Can I reuse pre-existing code or libraries I built on my own time?",
-    "Can the landlord enter my apartment without 24 hours advance notice?",
-  ];
+  const scenarioChips = personaProfile.suggestedQuestions;
 
   const handleSend = async (queryToSend?: string) => {
     const query = queryToSend || inputQuery;
@@ -71,6 +74,7 @@ export default function GroundedChat({ contractText }: GroundedChatProps) {
           query,
           history: messages.map((m) => ({ role: m.role, content: m.content })),
           stream: true,
+          persona,
         }),
       });
 

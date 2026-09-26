@@ -15,6 +15,7 @@ export const AnalyzeRequestSchema = z.object({
     })
     .min(20, "Contract text is too short. Minimum 20 characters required for legal analysis.")
     .max(65000, "Contract text exceeds maximum allowable limit of 65,000 characters."),
+  persona: z.string().optional(),
 });
 
 export type AnalyzeRequest = z.infer<typeof AnalyzeRequestSchema>;
@@ -44,6 +45,7 @@ export const ChatRequestSchema = z.object({
     .optional()
     .default([]),
   stream: z.boolean().optional().default(false),
+  persona: z.string().optional(),
 });
 
 export type ChatRequest = z.infer<typeof ChatRequestSchema>;
@@ -90,6 +92,7 @@ export const NegotiateRequestSchema = z.object({
     })
     .optional()
     .default("Balanced"),
+  persona: z.string().optional(),
 });
 
 export type NegotiateRequest = z.infer<typeof NegotiateRequestSchema>;

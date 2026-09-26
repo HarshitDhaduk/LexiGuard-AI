@@ -43,8 +43,25 @@ const CHECKLIST_ITEMS: ChecklistItem[] = [
   },
 ];
 
-export default function SigningSafetyChecklist() {
-  const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set(["payment-terms"]));
+import { PersonaId, getPersonaProfile, PERSONA_PROFILES } from "@/lib/persona";
+
+interface SigningSafetyChecklistProps {
+  persona?: PersonaId;
+  onSelectPersona?: (persona: PersonaId) => void;
+}
+
+export default function SigningSafetyChecklist({
+  persona = "freelancer",
+  onSelectPersona,
+}: SigningSafetyChecklistProps) {
+  const [activePersona, setActivePersona] = useState<PersonaId>(persona);
+  const currentPersona = onSelectPersona ? persona : activePersona;
+  const personaProfile = getPersonaProfile(currentPersona);
+  const checklistItems = personaProfile.checklistItems;
+
+  const [checkedIds, setCheckedIds] = useState<Set<string>>(
+    new Set([checklistItems[0]?.id || "default-item"])
+  );
 
   const toggleItem = (id: string) => {
     setCheckedIds((prev) => {
@@ -58,7 +75,7 @@ export default function SigningSafetyChecklist() {
     });
   };
 
-  const progressPercentage = Math.round((checkedIds.size / CHECKLIST_ITEMS.length) * 100);
+  const progressPercentage = Math.round((checkedIds.size / checklistItems.length) * 100);
 
   const getReadinessBadge = () => {
     if (progressPercentage === 100) {
@@ -99,10 +116,10 @@ export default function SigningSafetyChecklist() {
   };
 
   const handleVerifyAll = () => {
-    if (checkedIds.size === CHECKLIST_ITEMS.length) {
-      setCheckedIds(new Set(["payment-terms"]));
+    if (checkedIds.size === checklistItems.length) {
+      setCheckedIds(new Set([checklistItems[0]?.id || "default-item"]));
     } else {
-      setCheckedIds(new Set(CHECKLIST_ITEMS.map((item) => item.id)));
+      setCheckedIds(new Set(checklistItems.map((item) => item.id)));
     }
   };
 
@@ -120,20 +137,48 @@ export default function SigningSafetyChecklist() {
             <span className={`text-[10px] px-2 py-0.5 rounded font-mono font-semibold border ${badge.color}`}>
               {badge.label}
             </span>
+            <span className="text-[10px] px-2 py-0.5 rounded font-mono bg-purple-950/80 text-purple-300 border border-purple-800/60">
+              Role: {personaProfile.badge}
+            </span>
           </div>
           <p className="text-xs text-gray-300 mt-1">
-            5 non-negotiable verification gates to protect your rights, compensation, and liability before signing.
+            5 non-negotiable verification gates calibrated for {personaProfile.name} before signing.
           </p>
         </div>
 
-        <div className="flex items-center space-x-2 self-start sm:self-auto">
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+          {/* Persona Switcher Tabs */}
+          <div className="flex items-center gap-1 bg-gray-950 p-1 rounded-xl border border-gray-800">
+            {(["freelancer", "tenant", "small_business", "consumer"] as PersonaId[]).map((pId) => {
+              const p = PERSONA_PROFILES[pId];
+              const isSelected = currentPersona === pId;
+              return (
+                <button
+                  key={pId}
+                  type="button"
+                  onClick={() => {
+                    if (onSelectPersona) onSelectPersona(pId);
+                    else setActivePersona(pId);
+                  }}
+                  className={`px-2.5 py-1 text-[11px] rounded-lg font-medium transition-colors ${
+                    isSelected
+                      ? "bg-blue-600 text-white font-semibold shadow"
+                      : "text-gray-400 hover:text-white"
+                  }`}
+                >
+                  {p.name.split(" / ")[0]}
+                </button>
+              );
+            })}
+          </div>
+
           <button
             type="button"
             onClick={handleVerifyAll}
             className="px-3 py-1.5 text-xs font-semibold bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-700/60 text-emerald-300 rounded-lg flex items-center space-x-1.5 transition-colors"
           >
             <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>{checkedIds.size === CHECKLIST_ITEMS.length ? "Reset Gates" : "Verify All (Safe to Sign)"}</span>
+            <span>{checkedIds.size === checklistItems.length ? "Reset Gates" : "Verify All (Safe to Sign)"}</span>
           </button>
 
           <button
@@ -151,7 +196,7 @@ export default function SigningSafetyChecklist() {
       <div className="space-y-2">
         <div className="flex items-center justify-between text-xs">
           <span className="font-semibold text-gray-300">
-            Pre-Signing Readiness: {checkedIds.size} of {CHECKLIST_ITEMS.length} Safeguards Confirmed
+            Pre-Signing Readiness: {checkedIds.size} of {checklistItems.length} Safeguards Confirmed
           </span>
           <span className="font-mono font-bold text-white">{progressPercentage}%</span>
         </div>
@@ -171,7 +216,7 @@ export default function SigningSafetyChecklist() {
 
       {/* Checklist Items */}
       <div className="space-y-3">
-        {CHECKLIST_ITEMS.map((item) => {
+        {checklistItems.map((item) => {
           const isChecked = checkedIds.has(item.id);
           return (
             <div

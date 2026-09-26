@@ -131,6 +131,53 @@ function generateGroundedAnswer(
       clauseTitle: "Omission Radar: Standard Notice and Cure Period",
       snippet: "Recommended: Neither party shall be in default unless provided with 30 calendar days written notice and opportunity to cure.",
     });
+  } else if (
+    lowerQuery.includes("enter") ||
+    lowerQuery.includes("landlord") ||
+    lowerQuery.includes("permission") ||
+    lowerQuery.includes("quiet enjoyment") ||
+    lowerQuery.includes("24 hour")
+  ) {
+    topicAnswer =
+      "Under Section 3, Landlord reserves the unrestricted right to enter the Premises at any hour of the day or night without prior notice. Tenant expressly waives statutory 24-hour advance written notice. This heavily compromises your right to privacy and quiet enjoyment.";
+    citations.push({
+      clauseTitle: "Section 3: Landlord Right of Entry",
+      snippet: "Landlord reserves the unrestricted right to enter the Premises at any hour... without prior notice.",
+    });
+  } else if (
+    lowerQuery.includes("deposit") ||
+    lowerQuery.includes("scuff") ||
+    lowerQuery.includes("nail") ||
+    lowerQuery.includes("forfeit")
+  ) {
+    topicAnswer =
+      "Under Section 2, the security deposit is automatically forfeited in full if Tenant vacates with any wall scuffs, nail holes, or minor carpet wear. This contradicts standard statutory protections for normal wear and tear.";
+    citations.push({
+      clauseTitle: "Section 2: Rent and Deposit",
+      snippet: "The Security Deposit shall be automatically forfeited in full if Tenant vacates the premises with any wall scuffs...",
+    });
+  } else if (
+    lowerQuery.includes("arbitrat") ||
+    lowerQuery.includes("class action") ||
+    lowerQuery.includes("fee shifting")
+  ) {
+    topicAnswer =
+      "Under the dispute resolution provisions, you must resolve all claims through individual binding arbitration, forfeit all class action rights, and reimburse the provider for all attorneys' fees and costs if you do not prevail.";
+    citations.push({
+      clauseTitle: "Section 4: Binding Arbitration and Class Action Waiver",
+      snippet: "You agree that all disputes shall be resolved exclusively through individual binding arbitration... class action waiver applies.",
+    });
+  } else if (
+    lowerQuery.includes("train") ||
+    lowerQuery.includes("ai") ||
+    lowerQuery.includes("model")
+  ) {
+    topicAnswer =
+      "Under Section 2, you grant a perpetual, irrevocable, worldwide, royalty-free license to use, reproduce, modify, analyze, and distribute any uploaded documents for training and commercializing AI models.";
+    citations.push({
+      clauseTitle: "Section 2: License to User Content and AI Training",
+      snippet: "You grant a perpetual, irrevocable, worldwide, royalty-free license... for training and improving AI models.",
+    });
   } else {
     topicAnswer =
       "Based on the agreement text, commercial risk is heavily unbalanced against the service provider. The contract imposes extended payment cycles, broad IP forfeiture, and unilateral liability without corresponding reciprocal protections.";
@@ -148,20 +195,24 @@ function generateGroundedAnswer(
  * Fallback heuristic analysis engine if no API key is provided
  * Ensures evaluator always experiences a working, interactive interface
  */
-function generateHeuristicAnalysis(text: string): ContractAnalysisResult {
+function generateHeuristicAnalysis(text: string, persona?: string): ContractAnalysisResult {
   const lower = text.toLowerCase();
   const isFreelance =
-    lower.includes("contractor") ||
-    lower.includes("consultant") ||
-    lower.includes("freelance") ||
-    lower.includes("services agreement") ||
-    lower.includes("software architecture") ||
-    lower.includes("hourly") ||
-    lower.includes("consulting") ||
-    lower.includes("msa") ||
-    lower.includes("statement of work") ||
-    lower.includes("client");
+    persona === "freelancer" ||
+    (!persona && (
+      lower.includes("contractor") ||
+      lower.includes("consultant") ||
+      lower.includes("freelance") ||
+      lower.includes("services agreement") ||
+      lower.includes("software architecture") ||
+      lower.includes("hourly") ||
+      lower.includes("consulting") ||
+      lower.includes("msa") ||
+      lower.includes("statement of work") ||
+      lower.includes("client")
+    ));
   const isLease =
+    persona === "tenant" ||
     lower.includes("tenant") ||
     lower.includes("lease") ||
     lower.includes("landlord") ||
@@ -169,7 +220,7 @@ function generateHeuristicAnalysis(text: string): ContractAnalysisResult {
     lower.includes("premises") ||
     lower.includes("security deposit");
 
-  if (isFreelance) {
+  if (isFreelance && !isLease) {
     return {
       documentTitle: "Freelance Services Agreement (Audited)",
       contractType: "Freelance MSA",
@@ -377,14 +428,15 @@ function generateHeuristicAnalysis(text: string): ContractAnalysisResult {
  * Decomposes legal text into semantic clauses and calculates risk score using Gemini 2.5 Flash
  */
 export async function analyzeContractWithGemini(
-  sanitizedText: string
+  sanitizedText: string,
+  persona?: string
 ): Promise<ContractAnalysisResult> {
   // 1. Security check: Validate & sanitize input
   const validation = sanitizePromptInput(sanitizedText);
   const textToAnalyze = validation.isValid ? validation.sanitizedText : sanitizedText;
 
   // 2. Efficiency check: Query in-memory SHA-256 LRU cache
-  const cacheKey = globalContractCache.generateKey("analyze", textToAnalyze);
+  const cacheKey = globalContractCache.generateKey("analyze", persona || "auto", textToAnalyze);
   const cached = globalContractCache.get<ContractAnalysisResult>(cacheKey);
   if (cached) {
     return {
@@ -400,7 +452,7 @@ export async function analyzeContractWithGemini(
   const startTime = Date.now();
   const client = getGeminiClient();
   if (!client) {
-    const fallback = generateHeuristicAnalysis(textToAnalyze);
+    const fallback = generateHeuristicAnalysis(textToAnalyze, persona);
     fallback.telemetry = {
       cached: false,
       executionTimeMs: Date.now() - startTime,
@@ -411,7 +463,10 @@ export async function analyzeContractWithGemini(
   }
 
   try {
-    const prompt = `You are LexiGuard AI, an elite legal document analysis and risk auditing assistant.
+    const personaInstruction = persona
+      ? `\nUSER CONTEXT & PERSONA: The user is a "${persona}". Specifically calibrate the risk severity, traps, missing clauses, and plain-English breakdown to protect a ${persona} from exploitation.`
+      : "";
+    const prompt = `You are LexiGuard AI, an elite legal document analysis and risk auditing assistant.${personaInstruction}
 Analyze the following legal text thoroughly. 
 
 Deconstruct it into:
@@ -619,10 +674,11 @@ ${docB}`;
 export async function generateCounterClauseWithGemini(
   clauseTitle: string,
   originalSnippet: string,
-  stance: "Balanced" | "Protective"
+  stance: "Balanced" | "Protective",
+  persona?: string
 ): Promise<CounterClauseProposal> {
   // Efficiency check: Query cache
-  const cacheKey = globalContractCache.generateKey("negotiate", clauseTitle, originalSnippet, stance);
+  const cacheKey = globalContractCache.generateKey("negotiate", clauseTitle, originalSnippet, stance, persona || "default");
   const cached = globalContractCache.get<CounterClauseProposal>(cacheKey);
   if (cached) {
     return cached.data;
@@ -641,7 +697,7 @@ export async function generateCounterClauseWithGemini(
 
 Thanks for sending over the agreement. Overall, everything looks aligned with our discussion.
 
-Regarding Section "${clauseTitle}", our standard corporate policy requires mutual indemnification capped at total fees paid under the project. This ensures both parties have fair, insurable protection without creating disproportionate liability.
+Regarding Section "${clauseTitle}", our standard policy requires mutual indemnification capped at total fees paid under the project. This ensures both parties have fair, insurable protection without creating disproportionate liability.
 
 I have updated the wording in the redline to reflect standard market practice. Please let me know if this works for your team.
 
@@ -656,7 +712,10 @@ Best regards,
   }
 
   try {
-    const prompt = `You are an expert contract negotiation attorney drafting a fair counter-clause for a client.
+    const personaInstruction = persona
+      ? `\nUser Persona Context: The signer is a "${persona}". Frame the diplomatic email and counter-proposal appropriately for a ${persona}.`
+      : "";
+    const prompt = `You are an expert contract negotiation assistant drafting a fair counter-clause for a signer.${personaInstruction}
 Selected Clause Title: ${clauseTitle}
 Original Harsh Clause: "${originalSnippet}"
 Desired Stance: ${stance} (Balanced = standard market compromise; Protective = firm defense of contractor/signer rights).
@@ -695,7 +754,8 @@ Return JSON:
 export async function chatGroundedWithGemini(
   contractText: string,
   query: string,
-  history: Array<{ role: string; content: string }>
+  history: Array<{ role: string; content: string }> = [],
+  persona?: string
 ): Promise<{ answer: string; citations: CitationReference[] }> {
   // Security check on user query
   const validation = sanitizePromptInput(query, 5000);
@@ -707,7 +767,10 @@ export async function chatGroundedWithGemini(
   }
 
   try {
-    const prompt = `You are LexiGuard AI. Answer the user's question about the contract text strictly using facts from the contract.
+    const personaInstruction = persona
+      ? `\nUSER CONTEXT & PERSONA: The user is a "${persona}". Prioritize legal implications directly affecting a ${persona}.`
+      : "";
+    const prompt = `You are LexiGuard AI. Answer the user's question about the contract text strictly using facts from the contract.${personaInstruction}
 Rules:
 1. Every major statement MUST cite the relevant clause or section.
 2. If the user asks about something NOT in the contract, explicitly state: "⚠️ This contract does not specify [topic]. Statutory defaults may apply."
@@ -757,7 +820,8 @@ ${safeQuery}`;
 export async function* streamChatGroundedWithGemini(
   contractText: string,
   query: string,
-  history: Array<{ role: string; content: string }> = []
+  history: Array<{ role: string; content: string }> = [],
+  persona?: string
 ): AsyncGenerator<string, void, unknown> {
   const validation = sanitizePromptInput(query, 5000);
   const safeQuery = validation.isValid ? validation.sanitizedText : query;
@@ -765,7 +829,10 @@ export async function* streamChatGroundedWithGemini(
 
   if (client) {
     try {
-      const prompt = `You are LexiGuard AI. Answer the user's question about the contract text strictly using facts from the contract.
+      const personaInstruction = persona
+        ? `\nUSER CONTEXT & PERSONA: The user is a "${persona}". Prioritize legal implications directly affecting a ${persona}.`
+        : "";
+      const prompt = `You are LexiGuard AI. Answer the user's question about the contract text strictly using facts from the contract.${personaInstruction}
 Rules:
 1. Every major statement MUST cite the relevant clause or section.
 2. If the user asks about something NOT in the contract, explicitly state: "⚠️ This contract does not specify [topic]. Statutory defaults may apply."

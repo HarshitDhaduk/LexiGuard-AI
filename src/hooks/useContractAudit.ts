@@ -10,12 +10,15 @@ import {
   SanitizationResult,
 } from "@/lib/types";
 import { saveContractToVault, StoredContractRecord } from "@/components/ContractHistoryVault";
+import { PersonaId } from "@/lib/persona";
 
 export interface UseContractAuditReturn {
   rawText: string;
   setRawText: (val: string) => void;
   selectedPresetId: string | null;
   setSelectedPresetId: (val: string | null) => void;
+  selectedPersona: PersonaId;
+  setSelectedPersona: (val: PersonaId) => void;
   customDocumentTitle: string;
   setCustomDocumentTitle: (val: string) => void;
   analysis: ContractAnalysisResult | null;
@@ -51,6 +54,7 @@ export function useContractAudit(
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(
     CONTRACT_PRESETS[0].id
   );
+  const [selectedPersona, setSelectedPersona] = useState<PersonaId>("freelancer");
   const [customDocumentTitle, setCustomDocumentTitle] = useState("");
   const [analysis, setAnalysis] = useState<ContractAnalysisResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -74,7 +78,7 @@ export function useContractAudit(
       }
 
       // Check client-side dual cache first for 0ms retrieval
-      const cacheKey = clientCache.generateKey("audit", payloadText.trim());
+      const cacheKey = clientCache.generateKey("audit", selectedPersona, payloadText.trim());
       const cached = clientCache.get<ContractAnalysisResult>(cacheKey);
       if (cached) {
         setAnalysis(cached);
@@ -100,7 +104,7 @@ export function useContractAudit(
         const res = await fetch("/api/analyze", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: payloadText }),
+          body: JSON.stringify({ text: payloadText, persona: selectedPersona }),
         });
         const json = await res.json();
         if (json.success && json.data) {
@@ -131,7 +135,7 @@ export function useContractAudit(
         setIsLoading(false);
       }
     },
-    [onAnnounce, customDocumentTitle]
+    [onAnnounce, customDocumentTitle, selectedPersona]
   );
 
   const handleSelectPresetAndAudit = useCallback(
@@ -141,6 +145,15 @@ export function useContractAudit(
         setSelectedPresetId(preset.id);
         setCustomDocumentTitle(preset.name);
         setRawText(preset.rawText);
+
+        if (preset.category === "Residential Lease") {
+          setSelectedPersona("tenant");
+        } else if (preset.category === "SaaS Terms") {
+          setSelectedPersona("consumer");
+        } else {
+          setSelectedPersona("freelancer");
+        }
+
         const res = sanitizeContractText(preset.rawText);
         handleAnalyze(res.sanitizedText, res);
       }
@@ -211,6 +224,8 @@ export function useContractAudit(
     setRawText,
     selectedPresetId,
     setSelectedPresetId,
+    selectedPersona,
+    setSelectedPersona,
     customDocumentTitle,
     setCustomDocumentTitle,
     analysis,

@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
         { status: 400, headers }
       );
     }
-    const { text } = parseResult.data;
+    const { text, persona } = parseResult.data;
 
     // 2. Input Length & Security Validation
     const validation = sanitizePromptInput(text, 65000);
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const analysis = await analyzeContractWithGemini(validation.sanitizedText);
+    const analysis = await analyzeContractWithGemini(validation.sanitizedText, persona);
     return NextResponse.json({ success: true, data: analysis }, { headers });
   } catch (error) {
     console.error("Error in /api/analyze:", error);

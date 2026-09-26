@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
         { status: 400, headers }
       );
     }
-    const { contractText, query, history, stream } = parseResult.data;
+    const { contractText, query, history, stream, persona } = parseResult.data;
 
     const valQuery = sanitizePromptInput(query, 5000);
     if (!valQuery.isValid && query.trim().length === 0) {
@@ -66,7 +66,8 @@ export async function POST(req: NextRequest) {
             const tokenStream = streamChatGroundedWithGemini(
               contractText,
               valQuery.sanitizedText || query,
-              history
+              history,
+              persona
             );
             for await (const chunk of tokenStream) {
               const sseLine = `data: ${JSON.stringify({ chunk })}\n\n`;
@@ -93,7 +94,8 @@ export async function POST(req: NextRequest) {
     const response = await chatGroundedWithGemini(
       contractText,
       valQuery.sanitizedText || query,
-      history
+      history,
+      persona
     );
     return NextResponse.json({ success: true, data: response }, { headers });
   } catch (error) {

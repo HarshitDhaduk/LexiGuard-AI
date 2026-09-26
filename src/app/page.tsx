@@ -14,6 +14,7 @@ import TabLoadingSkeleton from "@/components/TabLoadingSkeleton";
 import OnboardingModal from "@/components/OnboardingModal";
 import AnalysisStepper from "@/components/AnalysisStepper";
 import { CONTRACT_PRESETS } from "@/lib/presets";
+import { getPersonaProfile } from "@/lib/persona";
 import { useAccessibilityState } from "@/hooks/useAccessibilityState";
 import { useContractAudit } from "@/hooks/useContractAudit";
 import {
@@ -114,6 +115,8 @@ export default function Home() {
     setRawText,
     selectedPresetId,
     setSelectedPresetId,
+    selectedPersona,
+    setSelectedPersona,
     customDocumentTitle,
     setCustomDocumentTitle,
     analysis,
@@ -216,6 +219,8 @@ export default function Home() {
                 isLoading={isLoading}
                 selectedPresetId={selectedPresetId}
                 setSelectedPresetId={setSelectedPresetId}
+                selectedPersona={selectedPersona}
+                setSelectedPersona={setSelectedPersona}
                 customDocumentTitle={customDocumentTitle}
                 setCustomDocumentTitle={setCustomDocumentTitle}
                 onFileExtracted={handleFileExtracted}
@@ -227,7 +232,10 @@ export default function Home() {
           {/* Legal Aid Directory & Safety Checklist (Available pre-audit) */}
           {!analysis && activeTab === "aid" && (
             <div className="space-y-6">
-              <SigningSafetyChecklist />
+              <SigningSafetyChecklist
+                persona={selectedPersona}
+                onSelectPersona={setSelectedPersona}
+              />
               <LegalAidDirectory />
             </div>
           )}
@@ -242,12 +250,15 @@ export default function Home() {
                     <Layers className="w-5 h-5" />
                   </div>
                   <div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <h2 className="text-base font-bold text-white">
                         {analysis.documentTitle}
                       </h2>
                       <span className="text-xs bg-gray-800 text-gray-300 px-2 py-0.5 rounded font-mono">
                         {analysis.contractType}
+                      </span>
+                      <span className="text-xs bg-purple-950/80 text-purple-300 border border-purple-800/60 px-2 py-0.5 rounded font-mono">
+                        Persona: {getPersonaProfile(selectedPersona).badge}
                       </span>
                     </div>
                     <p className="text-xs text-gray-400 mt-0.5">
@@ -326,7 +337,12 @@ export default function Home() {
                 </>
               )}
 
-              {activeTab === "qa" && <GroundedChat contractText={rawText} />}
+              {activeTab === "qa" && (
+                <GroundedChat
+                  contractText={rawText}
+                  persona={selectedPersona}
+                />
+              )}
 
               {activeTab === "compare" && <RedlineCompare />}
 
@@ -334,6 +350,7 @@ export default function Home() {
                 <NegotiationStudio
                   availableClauses={analysis.clauses}
                   selectedClauseForEdit={selectedClauseForNegotiation}
+                  persona={selectedPersona}
                 />
               )}
 
@@ -341,7 +358,10 @@ export default function Home() {
 
               {activeTab === "aid" && (
                 <div className="space-y-6">
-                  <SigningSafetyChecklist />
+                  <SigningSafetyChecklist
+                    persona={selectedPersona}
+                    onSelectPersona={setSelectedPersona}
+                  />
                   <LegalAidDirectory />
                 </div>
               )}
@@ -372,7 +392,7 @@ export default function Home() {
           <div className="text-[11px] text-gray-400 sm:text-right space-y-1">
             <div className="flex flex-wrap items-center sm:justify-end gap-2">
               <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-950/80 text-emerald-300 border border-emerald-800/60">
-                ✓ 104 Passing Tests (16 Suites)
+                ✓ 110 Passing Tests (17 Suites)
               </span>
               <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-950/80 text-blue-300 border border-blue-800/60">
                 Tracked Size: ~495 KiB (&lt; 10 MB Limit)
