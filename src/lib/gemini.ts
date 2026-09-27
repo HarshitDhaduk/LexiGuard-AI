@@ -1195,50 +1195,29 @@ ${safeQuery}`;
 }
 
 /**
- * Streaming Grounded Q&A via ReadableStream for Server-Sent Events (SSE)
+ * Streaming Grounded Q&A via AsyncGenerator for Server-Sent Events (SSE)
  */
-export async function streamChatGroundedWithGemini(
+export async function* streamChatGroundedWithGemini(
   contractText: string,
   query: string,
   history: Array<{ role: string; content: string }> = [],
   persona?: string
-): Promise<ReadableStream<Uint8Array>> {
-  const encoder = new TextEncoder();
+): AsyncGenerator<string, void, unknown> {
   const validation = sanitizePromptInput(query, 5000);
   const safeQuery = validation.isValid ? validation.sanitizedText : query;
-
   const client = getGeminiClient();
 
-  return new ReadableStream({
-    async start(controller) {
-      const sendEvent = (payload: object) => {
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
-      };
-
-      try {
-        if (!client) {
-          const { answer, citations } = retrieveGroundedContractAnswer(contractText, safeQuery);
-          const words = answer.split(" ");
-          const chunkSize = 4;
-          for (let i = 0; i < words.length; i += chunkSize) {
-            const chunk = words.slice(i, i + chunkSize).join(" ") + " ";
-            sendEvent({ token: chunk });
-            await new Promise((r) => setTimeout(r, 15));
-          }
-          sendEvent({ done: true, citations });
-          controller.close();
-          return;
-        }
-
-        const personaInstruction = persona
-          ? `\nUSER CONTEXT & PERSONA: The user is a "${persona}". Prioritize legal implications directly affecting a ${persona}.`
-          : "";
-        const prompt = `You are LexiGuard AI. Answer the user's question about the contract text strictly using facts from the contract.${personaInstruction}
+  if (client) {
+    try {
+      const personaInstruction = persona
+        ? `\nUSER CONTEXT & PERSONA: The user is a "${persona}". Prioritize legal implications directly affecting a ${persona}.`
+        : "";
+      const prompt = `You are LexiGuard AI. Answer the user's question about the contract text strictly using facts from the contract.${personaInstruction}
 Rules:
-1. Every major statement MUST cite the relevant clause or section (e.g., "Under Section 3...").
+1. Every major statement MUST cite the relevant clause or section.
 2. If the user asks about something NOT in the contract, explicitly state: "⚠️ This contract does not specify [topic]. Statutory defaults may apply."
-3. Uphold strict non-advisory legal boundaries.
-4. End with a brief educational disclaimer.
+3. If the user asks for legal advice on how to break the law or evade obligations, refuse politely and uphold legal boundaries.
+4. End your response with a brief 1-line educational disclaimer.
 
 CONTRACT TEXT:
 ${contractText}
@@ -1246,44 +1225,41 @@ ${contractText}
 QUESTION:
 ${safeQuery}`;
 
-        const streamResult = await executeWithModelFallback(
-          client,
-          { temperature: 0.2 },
-          async (model) => {
-            return await model.generateContentStream(prompt);
-          }
-        );
+      let streamResult: any = null;
+      for (const modelName of CANDIDATE_MODELS) {
+        try {
+          const model = client.getGenerativeModel({
+            model: modelName,
+            generationConfig: {
+              temperature: 0.2,
+            },
+          });
+          streamResult = await model.generateContentStream(prompt);
+          if (streamResult) break;
+        } catch (e) {
+          console.warn(`Model ${modelName} stream error, trying next candidate:`, e);
+          continue;
+        }
+      }
 
-        let fullText = "";
+      if (streamResult) {
         for await (const chunk of streamResult.stream) {
           const chunkText = chunk.text();
           if (chunkText) {
-            fullText += chunkText;
-            sendEvent({ token: chunkText });
+            yield chunkText;
           }
         }
-
-        const citations: CitationReference[] = [];
-        const sectionMatches = fullText.match(/(?:Section|Clause)\s+\d+[^:\n.,]*/gi);
-        if (sectionMatches) {
-          const unique = Array.from(new Set(sectionMatches.map((s) => s.trim())));
-          for (const sm of unique.slice(0, 3)) {
-            citations.push({
-              clauseTitle: sm,
-              snippet: "Directly cited from contract text",
-            });
-          }
-        }
-
-        sendEvent({ done: true, citations });
-        controller.close();
-      } catch (err) {
-        console.warn("SSE Stream fallback triggered:", err);
-        const { answer, citations } = retrieveGroundedContractAnswer(contractText, safeQuery);
-        sendEvent({ token: answer });
-        sendEvent({ done: true, citations });
-        controller.close();
+        return;
       }
-    },
-  });
+    } catch (err) {
+      console.warn("Gemini stream error, falling back to grounded passage retriever:", err);
+    }
+  }
+
+  const grounded = retrieveGroundedContractAnswer(contractText, safeQuery);
+  const words = grounded.answer.split(" ");
+  for (const word of words) {
+    yield word + " ";
+    await new Promise((r) => setTimeout(r, 18));
+  }
 }
